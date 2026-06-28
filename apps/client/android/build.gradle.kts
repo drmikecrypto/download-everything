@@ -21,9 +21,6 @@ subprojects {
         extensions.findByType(LibraryExtension::class.java)?.apply {
             compileSdk = 37
         }
-        tasks.matching { it.name.contains("checkReleaseAarMetadata") }.configureEach {
-            enabled = false
-        }
     }
 }
 subprojects {
