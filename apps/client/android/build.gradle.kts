@@ -16,18 +16,15 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
+
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure<LibraryExtension>("android") {
+            compileSdk = 37
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-// Flutter plugins ship their own compileSdk; align with app (file_picker needs 36+).
-subprojects {
-    afterEvaluate {
-        extensions.findByType(LibraryExtension::class.java)?.apply {
-            compileSdk = 36
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {
