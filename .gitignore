@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+dist/
+.astro/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Temp downloads
+*.tmp
+apps/api/tmp/
+
+# Build
+apps/web/dist/
+.wrangler/
+.dev.vars

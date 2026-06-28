@@ -1,0 +1,16 @@
+# Legacy Render Blueprint — prefer Cloudflare Workers (apps/worker) for always-on free API.
+# Render free tier sleeps after ~15 min idle; do not use for production.
+services:
+  - type: web
+    name: download-everything-api
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    healthCheckPath: /health
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://drmikecrypto.github.io
+      - key: MAX_ANALYZE_TIMEOUT
+        value: "90"

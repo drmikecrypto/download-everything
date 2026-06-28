@@ -1,0 +1,110 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Download Everything — Free Universal Video Downloader',
+  description = 'Download Instagram stories, reels, posts, TikTok videos, YouTube videos & shorts, X videos, and media from 1,800+ sites. Ad-free, no signup, open source by drmikecrypto.',
+} = Astro.props;
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') || 'https://drmikecrypto.github.io/download-everything';
+const keywords = 'video downloader, instagram downloader, tiktok downloader, youtube downloader, download instagram reels, download instagram stories, download tiktok, download youtube shorts, twitter video downloader, x video download, free video downloader, no ads';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content="Download Everything" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content="drmikecrypto" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href={siteUrl} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Download Everything" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:creator" content="@drmikecrypto" />
+
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="sitemap" href={`${import.meta.env.BASE_URL}sitemap-index.xml`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Download Everything",
+      "url": siteUrl,
+      "description": description,
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "drmikecrypto", "url": "https://github.com/drmikecrypto" },
+      "isAccessibleForFree": true,
+      "featureList": [
+        "Instagram story downloader",
+        "Instagram reels downloader",
+        "TikTok video downloader",
+        "YouTube video and Shorts downloader",
+        "X (Twitter) video downloader",
+        "1800+ site support via yt-dlp"
+      ]
+    })} />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface-2: #1a1a26;
+    --border: #2a2a3d;
+    --text: #f0f0f5;
+    --muted: #8888a0;
+    --accent: #6c5ce7;
+    --accent-hover: #7d6ff0;
+    --success: #00d2a0;
+    --error: #ff6b6b;
+    --radius: 12px;
+    --font: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(108, 92, 231, 0.15), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0, 210, 160, 0.08), transparent);
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); }
+
+  ::selection { background: rgba(108, 92, 231, 0.4); }
+</style>

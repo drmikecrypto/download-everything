@@ -1,0 +1,332 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <header class="header">
+    <div class="container header-inner">
+      <a href={import.meta.env.BASE_URL} class="logo" aria-label="Download Everything home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="url(#g)"/>
+          <path d="M16 8v12m0 0l-4-4m4 4l4-4M8 22h16" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6c5ce7"/><stop offset="1" stop-color="#00d2a0"/></linearGradient></defs>
+        </svg>
+        <span>Download Everything</span>
+      </a>
+      <nav aria-label="Main">
+        <a href="https://github.com/drmikecrypto/download-everything" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Download anything from the internet</h1>
+      <p class="hero-sub">
+        Instagram stories, reels &amp; posts · TikTok · YouTube &amp; Shorts · X videos · 1,800+ more sites.
+        <strong>Free. Ad-free. No signup.</strong>
+      </p>
+
+      <form id="analyze-form" class="url-form" role="search" aria-label="Analyze media URL">
+        <label for="url-input" class="sr-only">Paste video or media URL</label>
+        <input
+          id="url-input"
+          type="url"
+          name="url"
+          placeholder="Paste any link — Instagram, TikTok, YouTube, X, or any video URL…"
+          autocomplete="off"
+          required
+          spellcheck="false"
+        />
+        <button type="submit" id="analyze-btn">Analyze</button>
+      </form>
+
+      <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+      <div id="results" class="results" hidden></div>
+    </section>
+
+    <section class="platforms" aria-labelledby="platforms-title">
+      <h2 id="platforms-title">Supported platforms</h2>
+      <ul class="platform-grid">
+        <li><strong>Instagram</strong> — stories, reels, posts, IGTV</li>
+        <li><strong>TikTok</strong> — videos, slideshows, sounds</li>
+        <li><strong>YouTube</strong> — videos, Shorts, playlists</li>
+        <li><strong>X / Twitter</strong> — videos, GIFs</li>
+        <li><strong>1,800+ sites</strong> — any URL yt-dlp supports</li>
+      </ul>
+    </section>
+
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title">Why Download Everything?</h2>
+      <div class="feature-grid">
+        <article>
+          <h3>Zero ads</h3>
+          <p>No popups, no malware redirects, no premium upsells. Ever.</p>
+        </article>
+        <article>
+          <h3>Pick your quality</h3>
+          <p>See every available resolution and format before you download.</p>
+        </article>
+        <article>
+          <h3>Open source</h3>
+          <p>Built by <a href="https://github.com/drmikecrypto">drmikecrypto</a>. Community contributions welcome.</p>
+        </article>
+        <article>
+          <h3>Privacy first</h3>
+          <p>No accounts, no tracking pixels, no data sold to advertisers.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>© {new Date().getFullYear()} <a href="https://github.com/drmikecrypto">drmikecrypto</a> · AGPL-3.0 · <a href="https://github.com/drmikecrypto/download-everything">Contribute on GitHub</a></p>
+    </div>
+  </footer>
+</BaseLayout>
+
+<script>
+  import { analyzeUrl, downloadUrl, formatDuration, formatBytes, type MediaFormat } from '../lib/api';
+
+  const form = document.getElementById('analyze-form') as HTMLFormElement;
+  const input = document.getElementById('url-input') as HTMLInputElement;
+  const btn = document.getElementById('analyze-btn') as HTMLButtonElement;
+  const status = document.getElementById('status') as HTMLDivElement;
+  const results = document.getElementById('results') as HTMLDivElement;
+
+  function showStatus(msg: string, type: 'loading' | 'error' = 'loading') {
+    status.hidden = false;
+    status.className = `status status--${type}`;
+    status.textContent = msg;
+  }
+
+  function hideStatus() {
+    status.hidden = true;
+  }
+
+  function renderFormatRow(url: string, fmt: MediaFormat): string {
+    const type = fmt.is_video ? 'Video' : fmt.is_audio ? 'Audio' : fmt.is_image ? 'Image' : 'Media';
+    const size = formatBytes(fmt.filesize || fmt.filesize_approx);
+    const href = downloadUrl(url, fmt.format_id);
+    return `
+      <tr>
+        <td><span class="badge badge--${fmt.is_video ? 'video' : fmt.is_audio ? 'audio' : 'other'}">${type}</span></td>
+        <td class="format-label">${fmt.label}</td>
+        <td class="format-ext">${fmt.ext.toUpperCase()}</td>
+        <td class="format-size">${size || '—'}</td>
+        <td>
+          <a href="${href}" class="dl-btn" download rel="noopener">Download</a>
+        </td>
+      </tr>`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = input.value.trim();
+    if (!url) return;
+
+    btn.disabled = true;
+    results.hidden = true;
+    try {
+      const data = await analyzeUrl(url, (msg) => showStatus(msg));
+      hideStatus();
+
+      if (!data.formats?.length) {
+        showStatus(data.error || 'No downloadable formats found.', 'error');
+        return;
+      }
+
+      const duration = formatDuration(data.duration);
+      const meta = [
+        data.platform && `<span class="meta-tag">${data.platform}</span>`,
+        data.uploader && `<span class="meta-tag">${data.uploader}</span>`,
+        duration && `<span class="meta-tag">${duration}</span>`,
+      ].filter(Boolean).join('');
+
+      results.innerHTML = `
+        <article class="result-card">
+          ${data.thumbnail ? `<img src="${data.thumbnail}" alt="" class="thumb" loading="lazy" width="320" height="180" />` : ''}
+          <div class="result-body">
+            <h2 class="result-title">${data.title || 'Media found'}</h2>
+            ${meta ? `<div class="meta">${meta}</div>` : ''}
+            <table class="format-table" aria-label="Available download formats">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Quality</th>
+                  <th>Format</th>
+                  <th>Size</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.formats.map((f) => renderFormatRow(url, f)).join('')}
+              </tbody>
+            </table>
+          </div>
+        </article>`;
+      results.hidden = false;
+    } catch (err) {
+      showStatus(err instanceof Error ? err.message : 'Something went wrong.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Auto-analyze if ?url= param present (shareable links for SEO)
+  const params = new URLSearchParams(window.location.search);
+  const shared = params.get('url');
+  if (shared) {
+    input.value = shared;
+    form.requestSubmit();
+  }
+</script>
+
+<style>
+  .container { max-width: 900px; margin: 0 auto; padding: 0 1.25rem; }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 700; font-size: 1.1rem; color: var(--text);
+  }
+  .logo:hover { color: var(--text); }
+  nav a { color: var(--muted); font-size: 0.9rem; }
+  nav a:hover { color: var(--text); }
+
+  .hero { padding: 4rem 0 3rem; text-align: center; }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+  }
+  .hero-sub { color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem; }
+  .hero-sub strong { color: var(--success); }
+
+  .url-form {
+    display: flex; gap: 0.5rem; max-width: 700px; margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.35rem;
+  }
+  .url-form input {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-family: var(--mono); font-size: 0.9rem; padding: 0.75rem 1rem;
+    outline: none; min-width: 0;
+  }
+  .url-form input::placeholder { color: var(--muted); }
+  .url-form button {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: calc(var(--radius) - 4px);
+    padding: 0.75rem 1.5rem; font-weight: 600; font-size: 0.95rem;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .url-form button:hover:not(:disabled) { background: var(--accent-hover); }
+  .url-form button:disabled { opacity: 0.6; cursor: wait; }
+
+  .status {
+    margin-top: 1.5rem; padding: 0.75rem 1rem;
+    border-radius: var(--radius); font-size: 0.95rem;
+  }
+  .status--loading { background: var(--surface-2); color: var(--muted); }
+  .status--error { background: rgba(255,107,107,0.1); color: var(--error); border: 1px solid rgba(255,107,107,0.3); }
+
+  .results { margin-top: 2rem; text-align: left; }
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0;
+  }
+  @media (max-width: 640px) {
+    .result-card { grid-template-columns: 1fr; }
+    .url-form { flex-direction: column; }
+  }
+  .thumb { width: 200px; height: auto; object-fit: cover; display: block; }
+  .result-body { padding: 1.25rem; min-width: 0; }
+  .result-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; word-break: break-word; }
+  .meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+  .meta-tag {
+    font-size: 0.75rem; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 0.2rem 0.6rem; color: var(--muted);
+  }
+
+  .format-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .format-table th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
+  }
+  .format-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .format-table tr:last-child td { border-bottom: none; }
+  .format-label { font-family: var(--mono); font-size: 0.8rem; }
+  .format-ext, .format-size { color: var(--muted); }
+
+  .badge {
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    padding: 0.15rem 0.5rem; border-radius: 4px;
+  }
+  .badge--video { background: rgba(108,92,231,0.2); color: #a29bfe; }
+  .badge--audio { background: rgba(0,210,160,0.15); color: var(--success); }
+  .badge--other { background: var(--surface-2); color: var(--muted); }
+
+  .dl-btn {
+    display: inline-block;
+    background: var(--success); color: #0a0a0f;
+    font-weight: 600; font-size: 0.8rem;
+    padding: 0.35rem 0.85rem; border-radius: 6px;
+    transition: filter 0.15s;
+  }
+  .dl-btn:hover { filter: brightness(1.1); color: #0a0a0f; }
+
+  .platforms, .features { padding: 3rem 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.25rem; text-align: center; }
+  .platform-grid {
+    list-style: none; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+  .platform-grid li {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem; font-size: 0.9rem; color: var(--muted);
+  }
+  .platform-grid strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
+
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
+  }
+  .feature-grid article {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem;
+  }
+  .feature-grid h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .feature-grid p { font-size: 0.875rem; color: var(--muted); }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0; margin-top: 2rem;
+  }
+  .footer-inner { text-align: center; font-size: 0.85rem; color: var(--muted); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); border: 0;
+  }
+</style>

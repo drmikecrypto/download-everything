@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://drmikecrypto.github.io/download-everything/sitemap-index.xml

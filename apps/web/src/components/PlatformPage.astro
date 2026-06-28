@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  platform: string;
+  title: string;
+  description: string;
+  examples: string[];
+}
+
+const { platform, title, description, examples } = Astro.props;
+---
+
+<BaseLayout {title} {description}>
+  <main class="container page">
+    <a href={import.meta.env.BASE_URL} class="back">← Download Everything</a>
+    <h1>{platform} Downloader</h1>
+    <p class="lead">{description}</p>
+
+    <form id="analyze-form" class="url-form" role="search">
+      <input
+        id="url-input"
+        type="url"
+        placeholder={`Paste ${platform} link here…`}
+        required
+        spellcheck="false"
+      />
+      <button type="submit">Analyze</button>
+    </form>
+
+    <div id="status" class="status" role="status" hidden></div>
+    <div id="results" class="results" hidden></div>
+
+    <section class="examples">
+      <h2>Supported {platform} content</h2>
+      <ul>
+        {examples.map((e) => <li>{e}</li>)}
+      </ul>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  import { analyzeUrl, downloadUrl, formatDuration, formatBytes } from '../lib/api';
+
+  const form = document.getElementById('analyze-form') as HTMLFormElement;
+  const input = document.getElementById('url-input') as HTMLInputElement;
+  const status = document.getElementById('status') as HTMLDivElement;
+  const results = document.getElementById('results') as HTMLDivElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = input.value.trim();
+    if (!url) return;
+    status.hidden = false;
+    results.hidden = true;
+    try {
+      const data = await analyzeUrl(url, (msg) => {
+        status.hidden = false;
+        status.textContent = msg;
+      });
+      status.hidden = true;
+      if (!data.formats?.length) {
+        status.hidden = false;
+        status.textContent = data.error || 'No formats found.';
+        return;
+      }
+      results.innerHTML = `
+        <h2>${data.title || 'Ready to download'}</h2>
+        <table><thead><tr><th>Quality</th><th>Format</th><th>Size</th><th></th></tr></thead>
+        <tbody>${data.formats.map((f) => `
+          <tr>
+            <td>${f.label}</td><td>${f.ext}</td>
+            <td>${formatBytes(f.filesize || f.filesize_approx) || '—'}</td>
+            <td><a href="${downloadUrl(url, f.format_id)}" download>Download</a></td>
+          </tr>`).join('')}</tbody></table>`;
+      results.hidden = false;
+    } catch (err) {
+      status.textContent = err instanceof Error ? err.message : 'Failed';
+    }
+  });
+</script>
+
+<style>
+  .container { max-width: 800px; margin: 0 auto; padding: 2rem 1.25rem; }
+  .back { color: var(--muted); font-size: 0.9rem; }
+  h1 { font-size: 2rem; margin: 1rem 0; }
+  .lead { color: var(--muted); margin-bottom: 2rem; }
+  .url-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .url-form input { flex: 1; padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+  .url-form button { padding: 0.75rem 1.25rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .status { color: var(--muted); margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+  th, td { padding: 0.5rem; border-bottom: 1px solid var(--border); text-align: left; }
+  .examples { margin-top: 3rem; }
+  .examples ul { color: var(--muted); padding-left: 1.25rem; }
+</style>

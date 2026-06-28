@@ -1,0 +1,12 @@
+name = "download-everything-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-12"
+# account_id: set CLOUDFLARE_ACCOUNT_ID in CI (GitHub secret) or via `wrangler login` locally.
+
+# Free tier: always-on edge API (no Render-style sleep).
+# Set CORS_ORIGINS to your Pages URL(s), comma-separated.
+[vars]
+CORS_ORIGINS = "https://download-everything.pages.dev,https://drmikecrypto.github.io,http://localhost:4321,http://127.0.0.1:4321"
+
+# Optional: proxy unknown URLs to a self-hosted yt-dlp Docker API (apps/api).
+# YTDLP_BACKEND = "https://your-ytdlp-server.example.com"

@@ -1,0 +1,32 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/api/**']
+  pull_request:
+    paths: ['apps/api/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: |
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Lint
+        working-directory: apps/api
+        run: ruff check .
+
+      - name: Import check
+        working-directory: apps/api
+        run: python -c "from main import app; print(app.title)"
