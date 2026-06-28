@@ -6,7 +6,7 @@ primary_region = "iad"
   dockerfile = "apps/api/Dockerfile"
 
 [env]
-  CORS_ORIGINS = "https://drmikecrypto.github.io"
+  CORS_ORIGINS = "https://download-everything.pages.dev"
   MAX_ANALYZE_TIMEOUT = "90"
 
 [http_service]

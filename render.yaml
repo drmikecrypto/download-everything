@@ -11,6 +11,6 @@ services:
     healthCheckPath: /health
     envVars:
       - key: CORS_ORIGINS
-        value: https://drmikecrypto.github.io
+        value: https://download-everything.pages.dev
       - key: MAX_ANALYZE_TIMEOUT
         value: "90"

@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 
-const site = process.env.SITE_URL || 'https://drmikecrypto.github.io/download-everything';
-const base = process.env.BASE_PATH || '/download-everything';
+const site = process.env.SITE_URL || 'https://download-everything.pages.dev';
+const base = process.env.BASE_PATH || '/';
 
 export default defineConfig({
   site,

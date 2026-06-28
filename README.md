@@ -1,12 +1,12 @@
 # Download Everything
 
-**[→ Open the live app — paste a link and download](https://drmikecrypto.github.io/download-everything/)**
+**[→ Open the live app — paste a link and download](https://download-everything.pages.dev)**
 
 The free, ad-free, open-source way to download videos from anywhere on the internet.
 
 Paste a link. Pick your quality. Download. No signup. No ads. No tracking.
 
-[![Live App](https://img.shields.io/badge/Live_App-Open_Now-00d2a0?style=for-the-badge)](https://drmikecrypto.github.io/download-everything/)
+[![Live App](https://img.shields.io/badge/Live_App-Open_Now-00d2a0?style=for-the-badge)](https://download-everything.pages.dev)
 [![API](https://img.shields.io/badge/API-FastAPI-009688)](apps/api)
 [![Web](https://img.shields.io/badge/Web-Astro-BC52EE)](apps/web)
 [![License](https://img.shields.io/badge/License-AGPL--3.0%2BNC-blue)](LICENSE)
