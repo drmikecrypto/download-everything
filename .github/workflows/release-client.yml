@@ -34,11 +34,8 @@ jobs:
       - name: Package Windows
         shell: pwsh
         run: |
-          $src = "apps/client/build/windows/x64/runner/Release"
-          $dest = "dist/download-everything-windows-x64"
-          New-Item -ItemType Directory -Force -Path $dest | Out-Null
-          Copy-Item -Path "$src/*" -Destination $dest -Recurse
-          Compress-Archive -Path $dest -DestinationPath dist/download-everything-windows-x64.zip -Force
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "apps/client/build/windows/x64/runner/Release/*" -DestinationPath dist/download-everything-windows-x64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x64
@@ -69,8 +66,7 @@ jobs:
       - name: Package Linux
         run: |
           mkdir -p dist
-          cd apps/client/build/linux/x64/release/bundle
-          tar -czf ../../../../../../dist/download-everything-linux-x64.tar.gz .
+          tar -czf dist/download-everything-linux-x64.tar.gz -C apps/client/build/linux/x64/release/bundle .
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
@@ -97,8 +93,8 @@ jobs:
       - name: Package macOS
         run: |
           mkdir -p dist
-          cd apps/client/build/macos/Build/Products/Release
-          ditto -c -k --sequesterRsrc --keepParent download_everything.app ../../../../../../dist/download-everything-macos-universal.zip
+          APP_PATH=$(find apps/client/build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/download-everything-macos-universal.zip
       - uses: actions/upload-artifact@v4
         with:
           name: macos
