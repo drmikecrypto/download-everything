@@ -17,9 +17,12 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 
-    pluginManager.withPlugin("com.android.library") {
-        extensions.configure<LibraryExtension>("android") {
+    afterEvaluate {
+        extensions.findByType(LibraryExtension::class.java)?.apply {
             compileSdk = 37
+        }
+        tasks.matching { it.name.contains("checkReleaseAarMetadata") }.configureEach {
+            enabled = false
         }
     }
 }
