@@ -1,0 +1,159 @@
+name: Release Desktop & Mobile Apps
+
+on:
+  push:
+    tags: ['app-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-client-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-client
+      - name: Prepare app
+        working-directory: apps/client
+        run: |
+          flutter pub get
+          dart run tool/generate_icon.dart
+          dart run flutter_launcher_icons
+      - name: Build Windows
+        working-directory: apps/client
+        run: flutter build windows --release
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          $src = "apps/client/build/windows/x64/runner/Release"
+          $dest = "dist/download-everything-windows-x64"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Path "$src/*" -Destination $dest -Recurse
+          Compress-Archive -Path $dest -DestinationPath dist/download-everything-windows-x64.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/download-everything-windows-x64.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-client
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - name: Prepare app
+        working-directory: apps/client
+        run: |
+          flutter pub get
+          dart run tool/generate_icon.dart
+          dart run flutter_launcher_icons
+      - name: Build Linux
+        working-directory: apps/client
+        run: flutter build linux --release
+      - name: Package Linux
+        run: |
+          mkdir -p dist
+          cd apps/client/build/linux/x64/release/bundle
+          tar -czf ../../../../../../dist/download-everything-linux-x64.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: dist/download-everything-linux-x64.tar.gz
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-client
+      - name: Prepare app
+        working-directory: apps/client
+        run: |
+          flutter pub get
+          dart run tool/generate_icon.dart
+          dart run flutter_launcher_icons
+      - name: Build macOS
+        working-directory: apps/client
+        run: flutter build macos --release
+      - name: Package macOS
+        run: |
+          mkdir -p dist
+          cd apps/client/build/macos/Build/Products/Release
+          ditto -c -k --sequesterRsrc --keepParent download_everything.app ../../../../../../dist/download-everything-macos-universal.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/download-everything-macos-universal.zip
+
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-client
+      - name: Prepare app
+        working-directory: apps/client
+        run: |
+          flutter pub get
+          dart run tool/generate_icon.dart
+          dart run flutter_launcher_icons
+      - name: Build Android APK
+        working-directory: apps/client
+        run: flutter build apk --release
+      - name: Package Android
+        run: |
+          mkdir -p dist
+          cp apps/client/build/app/outputs/flutter-apk/app-release.apk dist/download-everything-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: dist/download-everything-android.apk
+
+  release:
+    needs: [build-windows, build-linux, build-macos, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('app-v{0}', github.run_number) }}
+          name: Download Everything Apps ${{ github.ref_type == 'tag' && github.ref_name || github.run_number }}
+          draft: false
+          generate_release_notes: true
+          files: |
+            artifacts/download-everything-windows-x64.zip
+            artifacts/download-everything-linux-x64.tar.gz
+            artifacts/download-everything-macos-universal.zip
+            artifacts/download-everything-android.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

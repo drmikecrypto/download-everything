@@ -7,9 +7,23 @@ The free, ad-free, open-source way to download videos from anywhere on the inter
 Paste a link. Pick your quality. Download. No signup. No ads. No tracking.
 
 [![Live App](https://img.shields.io/badge/Live_App-Open_Now-00d2a0?style=for-the-badge)](https://download-everything.pages.dev)
+[![Desktop & Mobile](https://img.shields.io/badge/Download-Windows_macOS_Linux_Android-6c5ce7?style=for-the-badge)](https://github.com/drmikecrypto/download-everything/releases)
 [![API](https://img.shields.io/badge/API-FastAPI-009688)](apps/api)
 [![Web](https://img.shields.io/badge/Web-Astro-BC52EE)](apps/web)
 [![License](https://img.shields.io/badge/License-AGPL--3.0%2BNC-blue)](LICENSE)
+
+## Native apps (Windows, macOS, Linux, Android)
+
+Install the desktop or mobile app from **[GitHub Releases](https://github.com/drmikecrypto/download-everything/releases)** — no browser required.
+
+| Platform | File |
+|----------|------|
+| Windows | `download-everything-windows-x64.zip` |
+| macOS | `download-everything-macos-universal.zip` |
+| Linux | `download-everything-linux-x64.tar.gz` |
+| Android | `download-everything-android.apk` |
+
+Built with Flutter (`apps/client`). Uses the same API as the website; optional local [Docker API](apps/api) for full yt-dlp support.
 
 ## Supported platforms
 

@@ -1,0 +1,48 @@
+name: download_everything
+description: Download Everything — free universal video downloader for desktop and mobile.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  file_picker: ^8.1.7
+  google_fonts: ^6.2.1
+  http: ^1.2.2
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  receive_sharing_intent: ^1.8.1
+  shared_preferences: ^2.3.5
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+  image: ^4.5.2
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/app_icon.png
+  adaptive_icon_background: "#0a0a0f"
+  adaptive_icon_foreground: assets/app_icon.png
+  macos:
+    generate: true
+    image_path: assets/app_icon.png
+  windows:
+    generate: true
+    image_path: assets/app_icon.png
+  linux:
+    generate: true
+    image_path: assets/app_icon.png
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/app_icon.png

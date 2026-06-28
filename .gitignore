@@ -32,3 +32,12 @@ apps/api/tmp/
 apps/web/dist/
 .wrangler/
 .dev.vars
+
+# Flutter client
+apps/client/.dart_tool/
+apps/client/.flutter-plugins
+apps/client/.flutter-plugins-dependencies
+apps/client/build/
+apps/client/.pub-cache/
+apps/client/**/Generated.xcconfig
+apps/client/**/flutter_export_environment.sh
