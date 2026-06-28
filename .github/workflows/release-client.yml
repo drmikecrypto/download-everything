@@ -113,10 +113,6 @@ jobs:
           channel: stable
           cache: true
           cache-key: flutter-client
-      - name: Install Android SDK platforms
-        run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-36" "platforms/patchers;v4"
       - name: Prepare app
         working-directory: apps/client
         run: |
