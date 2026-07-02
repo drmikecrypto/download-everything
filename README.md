@@ -1,7 +1,5 @@
 # Download Everything
 
-**[→ Open the live app — paste a link and download](https://download-everything.pages.dev)**
-
 The free, ad-free, open-source way to download videos from anywhere on the internet.
 
 Paste a link. Pick your quality. Download. No signup. No ads. No tracking.
