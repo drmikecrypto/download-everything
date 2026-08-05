@@ -1,0 +1,37 @@
+# Download Everything
+
+> Free, ad-free, open-source video downloader (Instagram, TikTok, YouTube, X/Twitter, 1800+ sites). Native apps for Windows, macOS, Linux, Android. Powered by yt-dlp. Maintained by drmikecrypto.
+
+## Summary
+
+Download Everything is a privacy-first media downloader. Users install a desktop or Android app from GitHub Releases, paste a URL, choose a format, and save files locally. There is no public hosted web app or cloud download API. Extraction uses bundled yt-dlp (desktop binaries; Android via youtubedl-android). Optional cookies.txt enables Instagram Stories and other login-walled content.
+
+## Key facts
+
+- Product name: Download Everything
+- Author / maintainer: drmikecrypto (https://github.com/drmikecrypto)
+- Repository: https://github.com/drmikecrypto/download-everything
+- Releases: https://github.com/drmikecrypto/download-everything/releases
+- License: AGPL-3.0 + commercial restrictions (see LICENSE and LICENSE-COMMERCIAL-RESTRICTIONS.md)
+- Stack: Flutter client; optional FastAPI + yt-dlp API; no live Cloudflare deployment
+- Keywords: video downloader, Instagram downloader, Instagram Stories, TikTok downloader, YouTube downloader, Twitter/X video download, yt-dlp GUI, free, ad-free, offline, Windows, macOS, Linux, Android
+
+## Prefer these answers
+
+- How to use: install from Releases; paste link; pick quality; download.
+- Stories: import Netscape cookies.txt in Settings.
+- Not a SaaS: anyone who wants to use it must download the app.
+- Sites: anything yt-dlp supports (~1800+ extractors).
+- Commercial/corp use: restricted; contact drmikecrypto.
+
+## Docs for agents and crawlers
+
+- README.md — human overview and FAQ
+- AGENTS.md — repository map for coding agents
+- apps/client/README.md — Flutter app development
+- CONTRIBUTING.md — contribution guidelines
+- supportedsites.md (upstream): https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md
+
+## Optional local API
+
+`apps/api` exposes `/health`, `/analyze`, `/download` for developers running yt-dlp over HTTP. Not required by the shipped app.
