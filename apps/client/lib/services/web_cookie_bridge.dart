@@ -16,6 +16,19 @@ class WebCookieBridge {
     }
   }
 
+  /// Opens native Instagram login Activity; returns Cookie header or null if cancelled.
+  static Future<String?> loginInstagram() async {
+    try {
+      final value = await _channel.invokeMethod<String>('loginInstagram');
+      if (value == null || value.trim().isEmpty) return null;
+      return value.trim();
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   static Future<void> clearCookies() async {
     try {
       await _channel.invokeMethod<void>('clearCookies');

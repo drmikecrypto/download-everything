@@ -1,6 +1,8 @@
 package com.drmikecrypto.download_everything
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -23,6 +25,7 @@ class MainActivity : FlutterActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var progressSink: EventChannel.EventSink? = null
     private var initialized = false
+    private var pendingLoginResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -63,6 +66,18 @@ class MainActivity : FlutterActivity() {
                             Log.e(TAG, "clearCookies failed", t)
                             result.error("COOKIES_FAILED", t.fullMessage(), null)
                         }
+                    }
+                    "loginInstagram" -> {
+                        if (pendingLoginResult != null) {
+                            result.error("BUSY", "Instagram login already in progress", null)
+                            return@setMethodCallHandler
+                        }
+                        pendingLoginResult = result
+                        @Suppress("DEPRECATION")
+                        startActivityForResult(
+                            Intent(this, InstagramLoginActivity::class.java),
+                            REQ_IG_LOGIN,
+                        )
                     }
                     else -> result.notImplemented()
                 }
@@ -282,8 +297,23 @@ class MainActivity : FlutterActivity() {
             ?.maxByOrNull { it.lastModified() }
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_IG_LOGIN) return
+        val pending = pendingLoginResult ?: return
+        pendingLoginResult = null
+        if (resultCode == Activity.RESULT_OK) {
+            pending.success(data?.getStringExtra(InstagramLoginActivity.EXTRA_COOKIES))
+        } else {
+            pending.success(null)
+        }
+    }
+
     companion object {
         private const val TAG = "DownloadEverything"
+        private const val REQ_IG_LOGIN = 4401
         private const val YTDLP_BASE_DIR = "youtubedl-android"
         private const val YTDLP_PREFS = "youtubedl-android"
         private const val APP_PREFS = "download_everything"
