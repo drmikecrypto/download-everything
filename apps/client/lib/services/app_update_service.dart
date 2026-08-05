@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -10,11 +11,18 @@ class AppUpdateInfo {
     required this.latestVersion,
     required this.tagName,
     required this.releaseUrl,
+    this.downloadUrl,
   });
 
   final String latestVersion;
   final String tagName;
   final String releaseUrl;
+
+  /// Direct installer/APK URL for this platform when the release has a matching asset.
+  final String? downloadUrl;
+
+  /// Prefer platform asset; otherwise the release page.
+  String get openUrl => downloadUrl ?? releaseUrl;
 }
 
 class AppUpdateService {
@@ -64,6 +72,7 @@ class AppUpdateService {
             tagName: tag,
             releaseUrl: raw['html_url']?.toString() ??
                 'https://github.com/$_owner/$_repo/releases/tag/$tag',
+            downloadUrl: _platformAssetUrl(raw['assets']),
           );
         }
       }
@@ -74,6 +83,29 @@ class AppUpdateService {
     } catch (_) {
       return null;
     }
+  }
+
+  static String? _platformAssetUrl(Object? assetsRaw) {
+    if (assetsRaw is! List) return null;
+    final needles = _assetNameNeedles();
+    if (needles.isEmpty) return null;
+
+    for (final raw in assetsRaw) {
+      if (raw is! Map) continue;
+      final name = (raw['name']?.toString() ?? '').toLowerCase();
+      final url = raw['browser_download_url']?.toString();
+      if (url == null || url.isEmpty) continue;
+      if (needles.any(name.contains)) return url;
+    }
+    return null;
+  }
+
+  static List<String> _assetNameNeedles() {
+    if (Platform.isAndroid) return const ['android', '.apk'];
+    if (Platform.isWindows) return const ['windows'];
+    if (Platform.isLinux) return const ['linux'];
+    if (Platform.isMacOS) return const ['macos', 'darwin'];
+    return const [];
   }
 
   static List<int>? _parseSemver(String version) {

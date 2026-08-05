@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openUpdate() async {
     final update = _update;
     if (update == null) return;
-    final uri = Uri.parse(update.releaseUrl);
+    final uri = Uri.parse(update.openUrl);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -265,7 +265,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             OutlinedButton.icon(
               onPressed: _openUpdate,
               icon: const Icon(Icons.new_releases_outlined, size: 18),
-              label: Text('Update available — v${_update!.latestVersion}'),
+              label: Text(
+                _update!.downloadUrl != null
+                    ? 'Download update — v${_update!.latestVersion}'
+                    : 'Update available — v${_update!.latestVersion}',
+              ),
             ),
           ],
         ],

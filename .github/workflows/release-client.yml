@@ -88,6 +88,9 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    # Flutter stable 3.44.x occasionally hits an AOT snapshotter crash in
+    # _window_macos.dart; do not block Windows/Linux/Android releases on that.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -106,7 +109,14 @@ jobs:
           dart run tool/fetch_binaries.dart --platform=macos
       - name: Build macOS
         working-directory: apps/client
-        run: flutter build macos --release
+        run: |
+          set -e
+          if ! flutter build macos --release; then
+            echo "macOS build failed — cleaning and retrying once…"
+            flutter clean
+            flutter pub get
+            flutter build macos --release
+          fi
       - name: Bundle yt-dlp binaries
         run: |
           APP_PATH=$(find apps/client/build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)
@@ -123,6 +133,7 @@ jobs:
         with:
           name: macos
           path: dist/download-everything-macos-universal.zip
+          if-no-files-found: ignore
 
   build-android:
     runs-on: ubuntu-latest
@@ -158,6 +169,11 @@ jobs:
 
   release:
     needs: [build-windows, build-linux, build-macos, build-android]
+    if: |
+      always() &&
+      needs.build-windows.result == 'success' &&
+      needs.build-linux.result == 'success' &&
+      needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -171,6 +187,7 @@ jobs:
           name: Download Everything Apps ${{ github.ref_type == 'tag' && github.ref_name || github.run_number }}
           draft: false
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
             artifacts/download-everything-windows-x64.zip
             artifacts/download-everything-linux-x64.tar.gz

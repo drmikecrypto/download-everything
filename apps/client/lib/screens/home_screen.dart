@@ -6,6 +6,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/media.dart';
+import '../services/app_update_service.dart';
 import '../services/instagram_session.dart';
 import '../services/settings_service.dart';
 import '../services/ytdlp_engine.dart';
@@ -36,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isAnalyzing = false;
   String? _downloadingFormatId;
   double? _downloadProgress;
+  AppUpdateInfo? _appUpdate;
 
   @override
   void initState() {
@@ -44,6 +46,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Do not eagerly init yt-dlp here — native Python/FFmpeg extract is heavy and
     // used to crash/OOM the process on open. Init happens on first analyze/download.
     _listenForSharedLinks();
+    _checkForAppUpdate();
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    final update = await AppUpdateService().checkForUpdate();
+    if (!mounted) return;
+    setState(() => _appUpdate = update);
+  }
+
+  Future<void> _openAppUpdate() async {
+    final update = _appUpdate;
+    if (update == null) return;
+    final uri = Uri.parse(update.openUrl);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   void _listenForSharedLinks() {
@@ -327,6 +343,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           actions: [
+            if (_appUpdate != null)
+              IconButton(
+                tooltip: 'Update to v${_appUpdate!.latestVersion}',
+                onPressed: _openAppUpdate,
+                icon: Badge(
+                  smallSize: 8,
+                  backgroundColor: AppColors.success,
+                  child: Icon(
+                    Icons.system_update_alt_rounded,
+                    color: AppColors.success,
+                  ),
+                ),
+              ),
             IconButton(
               tooltip: 'Settings',
               onPressed: () async {
@@ -338,7 +367,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 );
+                if (!mounted) return;
                 setState(() {});
+                _checkForAppUpdate();
               },
               icon: const Icon(Icons.settings_outlined),
             ),
