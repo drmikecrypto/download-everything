@@ -6,11 +6,14 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/media.dart';
+import '../services/instagram_session.dart';
 import '../services/settings_service.dart';
 import '../services/ytdlp_engine.dart';
+import '../services/ytdlp_options.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/url_input.dart';
+import 'instagram_login_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _urlController = TextEditingController();
+  late final InstagramSession _igSession;
 
   AnalyzeResponse? _result;
   String? _statusMessage;
@@ -36,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _igSession = InstagramSession(widget.settings);
     // Do not eagerly init yt-dlp here — native Python/FFmpeg extract is heavy and
     // used to crash/OOM the process on open. Init happens on first analyze/download.
     _listenForSharedLinks();
@@ -69,6 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> _ensureInstagramSession({required bool force}) async {
+    if (!force && await _igSession.hasSession()) return true;
+    if (!mounted) return false;
+    setState(() => _statusMessage = 'Instagram sign-in required…');
+    return promptInstagramLogin(context, widget.settings);
+  }
+
   Future<void> _analyze() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
@@ -81,14 +93,46 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
+      if (shouldUseInstagramSession(url) &&
+          Platform.isAndroid &&
+          !await _igSession.hasSession()) {
+        final ok = await _ensureInstagramSession(force: true);
+        if (!ok) {
+          _showAnalyzeError(
+            'Instagram sign-in was cancelled.\n\n$kInstagramCookiesTip',
+          );
+          return;
+        }
+        if (!mounted) return;
+      }
+
       await widget.engine.ensureReady();
       if (!mounted) return;
       setState(() => _statusMessage = 'Analyzing link with yt-dlp…');
-      final data = await widget.engine.analyze(
+
+      var data = await widget.engine.analyze(
         url,
         cookiesPath: widget.settings.cookiesPath,
       );
       if (!mounted) return;
+
+      if (data.formats.isEmpty &&
+          shouldUseInstagramSession(url) &&
+          Platform.isAndroid &&
+          needsInstagramAuth(data.error)) {
+        final ok = await _ensureInstagramSession(force: true);
+        if (!ok) {
+          _showAnalyzeError(data.error ?? 'No downloadable formats found.');
+          return;
+        }
+        if (!mounted) return;
+        setState(() => _statusMessage = 'Retrying after Instagram sign-in…');
+        data = await widget.engine.analyze(
+          url,
+          cookiesPath: widget.settings.cookiesPath,
+        );
+        if (!mounted) return;
+      }
 
       if (data.formats.isEmpty) {
         setState(() {
@@ -105,6 +149,34 @@ class _HomeScreenState extends State<HomeScreen> {
         _result = data;
       });
     } on YtdlpException catch (e) {
+      if (shouldUseInstagramSession(url) &&
+          Platform.isAndroid &&
+          needsInstagramAuth(e.message)) {
+        final ok = await _ensureInstagramSession(force: true);
+        if (ok && mounted) {
+          setState(() => _statusMessage = 'Retrying after Instagram sign-in…');
+          try {
+            final data = await widget.engine.analyze(
+              url,
+              cookiesPath: widget.settings.cookiesPath,
+            );
+            if (!mounted) return;
+            if (data.formats.isNotEmpty) {
+              setState(() {
+                _isAnalyzing = false;
+                _statusMessage = null;
+                _result = data;
+              });
+              return;
+            }
+            _showAnalyzeError(data.error ?? e.message);
+            return;
+          } catch (retryError) {
+            _showAnalyzeError('$retryError');
+            return;
+          }
+        }
+      }
       _showAnalyzeError(e.message);
     } catch (e) {
       _showAnalyzeError('$e');
@@ -160,6 +232,45 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => _openContainingFolder(saved.path),
           ),
         ),
+      );
+    } on YtdlpException catch (e) {
+      if (shouldUseInstagramSession(_result!.url) &&
+          Platform.isAndroid &&
+          needsInstagramAuth(e.message)) {
+        final ok = await _ensureInstagramSession(force: true);
+        if (ok && mounted) {
+          try {
+            final saved = await widget.engine.download(
+              url: _result!.url,
+              formatId: format.formatId,
+              title: _result!.title ?? 'download',
+              ext: format.ext,
+              saveDirectory: saveDir,
+              cookiesPath: widget.settings.cookiesPath,
+              onProgress: (p) {
+                if (mounted) setState(() => _downloadProgress = p < 0 ? null : p);
+              },
+            );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Saved to ${saved.filename}')),
+            );
+            return;
+          } catch (retryError) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download failed: $retryError'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+            return;
+          }
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: $e'), backgroundColor: AppColors.error),
       );
     } catch (e) {
       if (!mounted) return;

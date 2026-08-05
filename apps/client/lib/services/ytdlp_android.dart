@@ -11,6 +11,7 @@ import '../utils/formatters.dart';
 import 'download_service.dart';
 import 'ytdlp_exception.dart';
 import 'ytdlp_format_parser.dart';
+import 'ytdlp_options.dart';
 
 /// Android MethodChannel bridge to youtubedl-android.
 class YtdlpAndroid {
@@ -107,7 +108,7 @@ class YtdlpAndroid {
       onProgress?.call(1);
       return DownloadResult(path: path, filename: p.basename(path));
     } on PlatformException catch (e) {
-      throw YtdlpException(e.message ?? e.code);
+      throw YtdlpException(_friendlyError(url, e.message ?? e.code));
     } finally {
       await sub?.cancel();
     }
@@ -134,11 +135,7 @@ class YtdlpAndroid {
       return 'yt-dlp engine failed to start on Android.\n$raw\n\n'
           'Try: free some storage, clear app data, or reinstall the APK from GitHub Releases.';
     }
-    final isStory = url.toLowerCase().contains('/stories/');
-    if (isStory || lower.contains('login') || lower.contains('cookie') || lower.contains('private')) {
-      return '$raw\n\nTip: Instagram stories often need cookies. Import a cookies.txt in Settings.';
-    }
-    return raw;
+    return appendInstagramCookiesTip(url, raw);
   }
 
   Future<String> _defaultDownloadDir() async {

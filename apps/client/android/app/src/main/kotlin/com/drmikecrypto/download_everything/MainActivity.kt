@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.webkit.CookieManager
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.drmikecrypto.download_everything/ytdlp"
+    private val cookiesChannelName = "com.drmikecrypto.download_everything/cookies"
     private val progressChannelName = "com.drmikecrypto.download_everything/ytdlp_progress"
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -35,6 +37,36 @@ class MainActivity : FlutterActivity() {
                     progressSink = null
                 }
             })
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, cookiesChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getCookies" -> {
+                        val url = call.argument<String>("url") ?: "https://www.instagram.com/"
+                        try {
+                            val cm = CookieManager.getInstance()
+                            cm.setAcceptCookie(true)
+                            result.success(cm.getCookie(url))
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "getCookies failed", t)
+                            result.error("COOKIES_FAILED", t.fullMessage(), null)
+                        }
+                    }
+                    "clearCookies" -> {
+                        try {
+                            val cm = CookieManager.getInstance()
+                            cm.removeAllCookies {
+                                cm.flush()
+                                result.success(null)
+                            }
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "clearCookies failed", t)
+                            result.error("COOKIES_FAILED", t.fullMessage(), null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
@@ -131,7 +163,7 @@ class MainActivity : FlutterActivity() {
                             ensureNativeReady()
                             YoutubeDL.getInstance().updateYoutubeDL(
                                 applicationContext,
-                                YoutubeDL.UpdateChannel.STABLE,
+                                YoutubeDL.UpdateChannel.NIGHTLY,
                             )
                             mainHandler.post { result.success(null) }
                         } catch (t: Throwable) {
@@ -201,7 +233,7 @@ class MainActivity : FlutterActivity() {
         try {
             YoutubeDL.getInstance().updateYoutubeDL(
                 applicationContext,
-                YoutubeDL.UpdateChannel.STABLE,
+                YoutubeDL.UpdateChannel.NIGHTLY,
             )
             prefs.edit().putBoolean(KEY_YTDLP_UPDATED_ONCE, true).apply()
             Log.i(TAG, "one-shot yt-dlp update completed")
@@ -217,10 +249,12 @@ class MainActivity : FlutterActivity() {
     ) {
         request.addOption("--no-playlist")
         request.addOption("--no-warnings")
-        request.addOption("--user-agent", MOBILE_USER_AGENT)
-        if (url.contains("instagram.com", ignoreCase = true) ||
+        val isInstagram = url.contains("instagram.com", ignoreCase = true) ||
             url.contains("instagr.am", ignoreCase = true)
-        ) {
+        // Custom UA breaks Instagram (empty media / 403); let yt-dlp choose headers there.
+        if (!isInstagram) {
+            request.addOption("--user-agent", MOBILE_USER_AGENT)
+        } else {
             request.addOption("--extractor-args", "instagram:app_id=$INSTAGRAM_APP_ID")
         }
         if (!cookiesPath.isNullOrBlank() && File(cookiesPath).exists()) {

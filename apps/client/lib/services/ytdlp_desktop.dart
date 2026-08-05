@@ -136,12 +136,7 @@ class YtdlpDesktop {
   }
 
   String _friendlyError(String url, String raw) {
-    final lower = raw.toLowerCase();
-    final isStory = url.toLowerCase().contains('/stories/');
-    if (isStory || lower.contains('login') || lower.contains('cookie') || lower.contains('private')) {
-      return '$raw\n\nTip: Instagram stories often need cookies. Import a cookies.txt in Settings.';
-    }
-    return raw;
+    return appendInstagramCookiesTip(url, raw);
   }
 
   Future<String> _defaultDownloadDir() async {

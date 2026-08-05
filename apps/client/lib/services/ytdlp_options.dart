@@ -5,16 +5,40 @@ const kMobileUserAgent =
 
 const kInstagramAppId = '936619743392459';
 
+bool isInstagramUrl(String url) {
+  final lower = url.toLowerCase();
+  return lower.contains('instagram.com') || lower.contains('instagr.am');
+}
+
+const kInstagramCookiesTip =
+    'Tip: Sign in to Instagram in the app (Home will prompt, or use Settings → Connect Instagram). '
+    'Your session stays on this device and unlocks posts, reels, and stories.';
+
+/// Appends a cookies tip when the URL or error looks Instagram/auth related.
+String appendInstagramCookiesTip(String url, String raw) {
+  final lower = raw.toLowerCase();
+  final needsTip = isInstagramUrl(url) ||
+      url.toLowerCase().contains('/stories/') ||
+      lower.contains('empty media') ||
+      lower.contains('impersonat') ||
+      lower.contains('login') ||
+      lower.contains('cookie') ||
+      lower.contains('private');
+  if (!needsTip) return raw;
+  if (raw.contains(kInstagramCookiesTip)) return raw;
+  return '$raw\n\n$kInstagramCookiesTip';
+}
+
 /// Common analyze/download flags applied on every request.
 List<String> commonYtdlpArgs(String url) {
   final args = <String>[
     '--no-playlist',
     '--no-warnings',
-    '--user-agent',
-    kMobileUserAgent,
   ];
-  final lower = url.toLowerCase();
-  if (lower.contains('instagram.com') || lower.contains('instagr.am')) {
+  // Custom UA breaks Instagram (empty media / 403); let yt-dlp choose headers there.
+  if (!isInstagramUrl(url)) {
+    args.addAll(['--user-agent', kMobileUserAgent]);
+  } else {
     args.addAll(['--extractor-args', 'instagram:app_id=$kInstagramAppId']);
   }
   return args;

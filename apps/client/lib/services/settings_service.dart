@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
@@ -27,6 +31,56 @@ class SettingsService {
     } else {
       await _prefs.setString(_cookiesPathKey, trimmed);
     }
+  }
+
+  /// App-private Netscape cookies path (readable by Android yt-dlp).
+  Future<String> cookiesStoragePath() async {
+    final docs = await getApplicationDocumentsDirectory();
+    return p.join(docs.path, 'cookies', 'cookies.txt');
+  }
+
+  /// Copies picker content into app storage and persists that path.
+  Future<String> importCookiesFile({String? sourcePath, List<int>? bytes}) async {
+    final destPath = await cookiesStoragePath();
+    final dest = File(destPath);
+    await dest.parent.create(recursive: true);
+
+    if (bytes != null && bytes.isNotEmpty) {
+      await dest.writeAsBytes(bytes, flush: true);
+    } else if (sourcePath != null && sourcePath.trim().isNotEmpty) {
+      final src = File(sourcePath);
+      if (!await src.exists()) {
+        throw StateError('Selected cookies file is not readable on this device.');
+      }
+      await src.copy(destPath);
+    } else {
+      throw StateError('No cookies file data to import.');
+    }
+
+    await setCookiesPath(destPath);
+    return destPath;
+  }
+
+  /// Deletes the stored cookies file (if present) and clears prefs.
+  Future<void> clearCookies() async {
+    final path = cookiesPath;
+    if (path != null) {
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {
+        // Best-effort delete; still clear the preference.
+      }
+    }
+    final stored = File(await cookiesStoragePath());
+    if (await stored.exists()) {
+      try {
+        await stored.delete();
+      } catch (_) {}
+    }
+    await setCookiesPath(null);
   }
 
   static Future<SettingsService> load() async {
