@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../app_version.dart';
+import '../services/app_update_service.dart';
 import '../services/settings_service.dart';
 import '../services/ytdlp_engine.dart';
 import '../theme/app_theme.dart';
@@ -22,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _cookiesPath;
   bool _busy = false;
   String? _status;
+  AppUpdateInfo? _update;
 
   @override
   void initState() {
@@ -29,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _askSaveLocation = widget.settings.askSaveLocation;
     _cookiesPath = widget.settings.cookiesPath;
     _loadVersion();
+    _checkForAppUpdate();
   }
 
   Future<void> _loadVersion() async {
@@ -40,6 +45,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _status = 'yt-dlp: $e');
     }
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    final update = await AppUpdateService().checkForUpdate();
+    if (!mounted) return;
+    setState(() => _update = update);
+  }
+
+  Future<void> _openUpdate() async {
+    final update = _update;
+    if (update == null) return;
+    final uri = Uri.parse(update.releaseUrl);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _save() async {
@@ -154,9 +172,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           FilledButton(onPressed: _save, child: const Text('Save settings')),
           const SizedBox(height: 32),
           Text(
-            'Download Everything v1.1.1\nAGPL-3.0 · drmikecrypto',
+            'Download Everything v$kAppVersion\nAGPL-3.0 · drmikecrypto',
             style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
           ),
+          if (_update != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _openUpdate,
+              icon: const Icon(Icons.new_releases_outlined, size: 18),
+              label: Text('Update available — v${_update!.latestVersion}'),
+            ),
+          ],
         ],
       ),
     );

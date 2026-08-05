@@ -58,6 +58,7 @@ class AnalyzeResponse {
     this.platform,
     required this.formats,
     this.error,
+    this.rawInfo,
   });
 
   final String url;
@@ -68,6 +69,9 @@ class AnalyzeResponse {
   final String? platform;
   final List<MediaFormat> formats;
   final String? error;
+
+  /// Full yt-dlp dump-json map (used for smarter `-f` selectors on download).
+  final Map<String, dynamic>? rawInfo;
 
   factory AnalyzeResponse.fromJson(Map<String, dynamic> json) {
     final formatsJson = json['formats'] as List<dynamic>? ?? [];

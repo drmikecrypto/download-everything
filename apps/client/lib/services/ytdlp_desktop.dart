@@ -11,6 +11,7 @@ import 'download_service.dart';
 import 'ytdlp_binaries.dart';
 import 'ytdlp_exception.dart';
 import 'ytdlp_format_parser.dart';
+import 'ytdlp_options.dart';
 
 /// Desktop implementation: invoke bundled yt-dlp + ffmpeg via Process.
 class YtdlpDesktop {
@@ -22,10 +23,9 @@ class YtdlpDesktop {
     final ytdlp = await YtdlpBinaries.resolveYtdlp();
     final args = <String>[
       '--dump-single-json',
-      '--no-playlist',
-      '--no-warnings',
       '--socket-timeout',
       '30',
+      ...commonYtdlpArgs(url),
       ..._cookieArgs(cookiesPath),
       url,
     ];
@@ -80,13 +80,12 @@ class YtdlpDesktop {
     final args = <String>[
       '-f',
       selector,
-      '--no-playlist',
-      '--no-warnings',
       '--newline',
       '--merge-output-format',
       'mp4',
       '-o',
       outTemplate,
+      ...commonYtdlpArgs(url),
       ..._cookieArgs(cookiesPath),
       if (ffmpeg != null) ...['--ffmpeg-location', p.dirname(ffmpeg)],
       url,

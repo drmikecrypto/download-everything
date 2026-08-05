@@ -29,10 +29,14 @@ class YtdlpEngine {
   }
 
   Future<AnalyzeResponse> analyze(String url, {String? cookiesPath}) async {
+    final AnalyzeResponse response;
     if (Platform.isAndroid) {
-      return _android.analyze(url, cookiesPath: cookiesPath);
+      response = await _android.analyze(url, cookiesPath: cookiesPath);
+    } else {
+      response = await _desktop.analyze(url, cookiesPath: cookiesPath);
     }
-    return _desktop.analyze(url, cookiesPath: cookiesPath);
+    lastInfo = response.rawInfo;
+    return response;
   }
 
   Future<DownloadResult> download({

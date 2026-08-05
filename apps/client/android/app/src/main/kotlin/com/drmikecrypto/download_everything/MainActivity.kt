@@ -1,5 +1,6 @@
 package com.drmikecrypto.download_everything
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -45,7 +46,7 @@ class MainActivity : FlutterActivity() {
                         } catch (t: Throwable) {
                             Log.e(TAG, "yt-dlp initialize failed", t)
                             mainHandler.post {
-                                result.error("INIT_FAILED", t.message ?: t.javaClass.simpleName, null)
+                                result.error("INIT_FAILED", t.fullMessage(), null)
                             }
                         }
                     }
@@ -61,19 +62,15 @@ class MainActivity : FlutterActivity() {
                             try {
                                 ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
+                                applyCommonOptions(request, url, cookiesPath)
                                 request.addOption("--dump-single-json")
-                                request.addOption("--no-playlist")
-                                request.addOption("--no-warnings")
                                 request.addOption("--socket-timeout", "30")
-                                if (!cookiesPath.isNullOrBlank() && File(cookiesPath).exists()) {
-                                    request.addOption("--cookies", cookiesPath)
-                                }
                                 val response = YoutubeDL.getInstance().execute(request)
                                 mainHandler.post { result.success(response.out) }
                             } catch (t: Throwable) {
                                 Log.e(TAG, "yt-dlp analyze failed", t)
                                 mainHandler.post {
-                                    result.error("ANALYZE_FAILED", t.message ?: t.javaClass.simpleName, null)
+                                    result.error("ANALYZE_FAILED", t.fullMessage(), null)
                                 }
                             }
                         }
@@ -92,15 +89,11 @@ class MainActivity : FlutterActivity() {
                             try {
                                 ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
+                                applyCommonOptions(request, url, cookiesPath)
                                 request.addOption("-f", format)
-                                request.addOption("--no-playlist")
-                                request.addOption("--no-warnings")
                                 request.addOption("--newline")
                                 request.addOption("--merge-output-format", "mp4")
                                 request.addOption("-o", outTemplate)
-                                if (!cookiesPath.isNullOrBlank() && File(cookiesPath).exists()) {
-                                    request.addOption("--cookies", cookiesPath)
-                                }
                                 YoutubeDL.getInstance().execute(request) { progress, _, _ ->
                                     mainHandler.post {
                                         progressSink?.success(
@@ -114,7 +107,7 @@ class MainActivity : FlutterActivity() {
                             } catch (t: Throwable) {
                                 Log.e(TAG, "yt-dlp download failed", t)
                                 mainHandler.post {
-                                    result.error("DOWNLOAD_FAILED", t.message ?: t.javaClass.simpleName, null)
+                                    result.error("DOWNLOAD_FAILED", t.fullMessage(), null)
                                 }
                             }
                         }
@@ -128,7 +121,7 @@ class MainActivity : FlutterActivity() {
                         } catch (t: Throwable) {
                             Log.e(TAG, "yt-dlp version failed", t)
                             mainHandler.post {
-                                result.error("VERSION_FAILED", t.message ?: t.javaClass.simpleName, null)
+                                result.error("VERSION_FAILED", t.fullMessage(), null)
                             }
                         }
                     }
@@ -144,7 +137,7 @@ class MainActivity : FlutterActivity() {
                         } catch (t: Throwable) {
                             Log.e(TAG, "yt-dlp update failed", t)
                             mainHandler.post {
-                                result.error("UPDATE_FAILED", t.message ?: t.javaClass.simpleName, null)
+                                result.error("UPDATE_FAILED", t.fullMessage(), null)
                             }
                         }
                     }
@@ -157,9 +150,82 @@ class MainActivity : FlutterActivity() {
     @Synchronized
     private fun ensureNativeReady() {
         if (initialized) return
-        YoutubeDL.getInstance().init(applicationContext)
-        FFmpeg.getInstance().init(applicationContext)
+        try {
+            initNativeLibs()
+        } catch (first: Throwable) {
+            Log.w(TAG, "yt-dlp init failed — wiping extract cache and retrying", first)
+            wipeYtdlpExtracts()
+            try {
+                initNativeLibs()
+            } catch (second: Throwable) {
+                throw IllegalStateException(
+                    "Failed to start yt-dlp engine after retry. ${second.fullMessage()}",
+                    second,
+                )
+            }
+        }
         initialized = true
+        maybeUpdateYtdlpOnce()
+    }
+
+    private fun initNativeLibs() {
+        try {
+            YoutubeDL.getInstance().init(applicationContext)
+        } catch (t: Throwable) {
+            throw IllegalStateException("YoutubeDL.init failed: ${t.fullMessage()}", t)
+        }
+        try {
+            FFmpeg.getInstance().init(applicationContext)
+        } catch (t: Throwable) {
+            throw IllegalStateException("FFmpeg.init failed: ${t.fullMessage()}", t)
+        }
+    }
+
+    private fun wipeYtdlpExtracts() {
+        val base = File(applicationContext.noBackupFilesDir, YTDLP_BASE_DIR)
+        if (base.exists()) {
+            val deleted = base.deleteRecursively()
+            Log.i(TAG, "wiped $YTDLP_BASE_DIR (ok=$deleted)")
+        }
+        // YoutubeDL tracks python package version here; clear so unzip runs again.
+        applicationContext
+            .getSharedPreferences(YTDLP_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
+    }
+
+    private fun maybeUpdateYtdlpOnce() {
+        val prefs = applicationContext.getSharedPreferences(APP_PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_YTDLP_UPDATED_ONCE, false)) return
+        try {
+            YoutubeDL.getInstance().updateYoutubeDL(
+                applicationContext,
+                YoutubeDL.UpdateChannel.STABLE,
+            )
+            prefs.edit().putBoolean(KEY_YTDLP_UPDATED_ONCE, true).apply()
+            Log.i(TAG, "one-shot yt-dlp update completed")
+        } catch (t: Throwable) {
+            Log.w(TAG, "one-shot yt-dlp update failed (non-fatal)", t)
+        }
+    }
+
+    private fun applyCommonOptions(
+        request: YoutubeDLRequest,
+        url: String,
+        cookiesPath: String?,
+    ) {
+        request.addOption("--no-playlist")
+        request.addOption("--no-warnings")
+        request.addOption("--user-agent", MOBILE_USER_AGENT)
+        if (url.contains("instagram.com", ignoreCase = true) ||
+            url.contains("instagr.am", ignoreCase = true)
+        ) {
+            request.addOption("--extractor-args", "instagram:app_id=$INSTAGRAM_APP_ID")
+        }
+        if (!cookiesPath.isNullOrBlank() && File(cookiesPath).exists()) {
+            request.addOption("--cookies", cookiesPath)
+        }
     }
 
     private fun findOutputFile(outTemplate: String): File? {
@@ -184,5 +250,27 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val TAG = "DownloadEverything"
+        private const val YTDLP_BASE_DIR = "youtubedl-android"
+        private const val YTDLP_PREFS = "youtubedl-android"
+        private const val APP_PREFS = "download_everything"
+        private const val KEY_YTDLP_UPDATED_ONCE = "ytdlp_updated_once"
+        private const val INSTAGRAM_APP_ID = "936619743392459"
+        private const val MOBILE_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
     }
+}
+
+private fun Throwable.fullMessage(maxDepth: Int = 6): String {
+    val parts = ArrayList<String>()
+    var current: Throwable? = this
+    var depth = 0
+    while (current != null && depth < maxDepth) {
+        val name = current.javaClass.simpleName
+        val msg = current.message?.trim().orEmpty()
+        parts += if (msg.isEmpty()) name else "$name: $msg"
+        current = current.cause
+        depth++
+    }
+    return parts.joinToString(" → ")
 }

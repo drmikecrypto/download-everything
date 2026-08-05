@@ -204,6 +204,7 @@ AnalyzeResponse analyzeResponseFromInfo(String url, Map<String, dynamic> info) {
     duration: (info['duration'] as num?)?.toDouble(),
     platform: detectPlatform(url) ?? info['extractor_key']?.toString(),
     formats: formats,
+    rawInfo: info,
   );
 }
 

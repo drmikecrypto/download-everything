@@ -25,9 +25,11 @@ class YtdlpAndroid {
       await _channel.invokeMethod<void>('initialize');
       _ready = true;
     } on PlatformException catch (e) {
+      final detail = (e.message ?? e.code).trim();
       throw YtdlpException(
-        e.message ??
-            'Failed to start yt-dlp on Android (${e.code}). Reinstall the app or free storage and try again.',
+        'yt-dlp engine failed to start on Android.\n'
+        '$detail\n\n'
+        'Try: free some storage, clear app data, or reinstall the APK from GitHub Releases.',
       );
     } on MissingPluginException {
       throw YtdlpException('yt-dlp native plugin is missing from this Android build.');
@@ -124,6 +126,14 @@ class YtdlpAndroid {
 
   String _friendlyError(String url, String raw) {
     final lower = raw.toLowerCase();
+    if (lower.contains('exceptionininitializer') ||
+        lower.contains('init failed') ||
+        lower.contains('failed to start yt-dlp') ||
+        lower.contains('youtubedl.init') ||
+        lower.contains('ffmpeg.init')) {
+      return 'yt-dlp engine failed to start on Android.\n$raw\n\n'
+          'Try: free some storage, clear app data, or reinstall the APK from GitHub Releases.';
+    }
     final isStory = url.toLowerCase().contains('/stories/');
     if (isStory || lower.contains('login') || lower.contains('cookie') || lower.contains('private')) {
       return '$raw\n\nTip: Instagram stories often need cookies. Import a cookies.txt in Settings.';
