@@ -33,8 +33,21 @@ android {
 
     packaging {
         jniLibs {
+            // Required so youtubedl-android Python/FFmpeg natives can dlopen on device.
             useLegacyPackaging = true
-            pickFirsts += listOf("lib/**/libc++_shared.so")
+            pickFirsts += listOf(
+                "**/libc++_shared.so",
+                "lib/armeabi-v7a/libc++_shared.so",
+                "lib/arm64-v8a/libc++_shared.so",
+                "lib/x86/libc++_shared.so",
+                "lib/x86_64/libc++_shared.so",
+            )
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
         }
     }
 }

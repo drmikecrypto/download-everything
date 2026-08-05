@@ -2,6 +2,7 @@ package com.drmikecrypto.download_everything
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
@@ -18,6 +19,7 @@ class MainActivity : FlutterActivity() {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var progressSink: EventChannel.EventSink? = null
+    private var initialized = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -38,12 +40,12 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "initialize" -> executor.execute {
                         try {
-                            YoutubeDL.getInstance().init(applicationContext)
-                            FFmpeg.getInstance().init(applicationContext)
+                            ensureNativeReady()
                             mainHandler.post { result.success(null) }
-                        } catch (e: Exception) {
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "yt-dlp initialize failed", t)
                             mainHandler.post {
-                                result.error("INIT_FAILED", e.message, null)
+                                result.error("INIT_FAILED", t.message ?: t.javaClass.simpleName, null)
                             }
                         }
                     }
@@ -57,6 +59,7 @@ class MainActivity : FlutterActivity() {
                         }
                         executor.execute {
                             try {
+                                ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
                                 request.addOption("--dump-single-json")
                                 request.addOption("--no-playlist")
@@ -67,9 +70,10 @@ class MainActivity : FlutterActivity() {
                                 }
                                 val response = YoutubeDL.getInstance().execute(request)
                                 mainHandler.post { result.success(response.out) }
-                            } catch (e: Exception) {
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "yt-dlp analyze failed", t)
                                 mainHandler.post {
-                                    result.error("ANALYZE_FAILED", e.message, null)
+                                    result.error("ANALYZE_FAILED", t.message ?: t.javaClass.simpleName, null)
                                 }
                             }
                         }
@@ -86,6 +90,7 @@ class MainActivity : FlutterActivity() {
                         }
                         executor.execute {
                             try {
+                                ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
                                 request.addOption("-f", format)
                                 request.addOption("--no-playlist")
@@ -106,9 +111,10 @@ class MainActivity : FlutterActivity() {
                                 val outFile = findOutputFile(outTemplate)
                                     ?: throw IllegalStateException("Output file not found")
                                 mainHandler.post { result.success(outFile.absolutePath) }
-                            } catch (e: Exception) {
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "yt-dlp download failed", t)
                                 mainHandler.post {
-                                    result.error("DOWNLOAD_FAILED", e.message, null)
+                                    result.error("DOWNLOAD_FAILED", t.message ?: t.javaClass.simpleName, null)
                                 }
                             }
                         }
@@ -116,25 +122,29 @@ class MainActivity : FlutterActivity() {
 
                     "version" -> executor.execute {
                         try {
+                            ensureNativeReady()
                             val version = YoutubeDL.getInstance().version(applicationContext)
                             mainHandler.post { result.success(version) }
-                        } catch (e: Exception) {
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "yt-dlp version failed", t)
                             mainHandler.post {
-                                result.error("VERSION_FAILED", e.message, null)
+                                result.error("VERSION_FAILED", t.message ?: t.javaClass.simpleName, null)
                             }
                         }
                     }
 
                     "update" -> executor.execute {
                         try {
+                            ensureNativeReady()
                             YoutubeDL.getInstance().updateYoutubeDL(
                                 applicationContext,
                                 YoutubeDL.UpdateChannel.STABLE,
                             )
                             mainHandler.post { result.success(null) }
-                        } catch (e: Exception) {
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "yt-dlp update failed", t)
                             mainHandler.post {
-                                result.error("UPDATE_FAILED", e.message, null)
+                                result.error("UPDATE_FAILED", t.message ?: t.javaClass.simpleName, null)
                             }
                         }
                     }
@@ -142,6 +152,14 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    @Synchronized
+    private fun ensureNativeReady() {
+        if (initialized) return
+        YoutubeDL.getInstance().init(applicationContext)
+        FFmpeg.getInstance().init(applicationContext)
+        initialized = true
     }
 
     private fun findOutputFile(outTemplate: String): File? {
@@ -156,7 +174,15 @@ class MainActivity : FlutterActivity() {
         val recentCutoff = System.currentTimeMillis() - 5 * 60 * 1000
         return dir.listFiles()
             ?.filter { it.isFile && it.lastModified() >= recentCutoff }
-            ?.filter { prefix.isEmpty() || it.name.startsWith(prefix) || it.nameWithoutExtension.startsWith(prefix.trimEnd('.')) }
+            ?.filter {
+                prefix.isEmpty() ||
+                    it.name.startsWith(prefix) ||
+                    it.nameWithoutExtension.startsWith(prefix.trimEnd('.'))
+            }
             ?.maxByOrNull { it.lastModified() }
+    }
+
+    companion object {
+        private const val TAG = "DownloadEverything"
     }
 }

@@ -36,32 +36,37 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Do not eagerly init yt-dlp here — native Python/FFmpeg extract is heavy and
+    // used to crash/OOM the process on open. Init happens on first analyze/download.
     _listenForSharedLinks();
-    widget.engine.ensureReady().catchError((_) {});
   }
 
   void _listenForSharedLinks() {
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
-    void applyText(String? text) {
-      if (text == null || !text.trim().startsWith('http')) return;
-      _urlController.text = text.trim();
-      _analyze();
+    try {
+      void applyText(String? text) {
+        if (text == null || !text.trim().startsWith('http')) return;
+        _urlController.text = text.trim();
+        _analyze();
+      }
+
+      final sharing = ReceiveSharingIntent.instance;
+
+      void applyShared(List<SharedMediaFile> files) {
+        if (files.isEmpty) return;
+        final item = files.first;
+        final text = (item.type == SharedMediaType.text || item.type == SharedMediaType.url)
+            ? item.path
+            : item.path;
+        applyText(text);
+      }
+
+      sharing.getInitialMedia().then(applyShared).catchError((_) {});
+      sharing.getMediaStream().listen(applyShared, onError: (_) {});
+    } catch (_) {
+      // Sharing plugin failures must never prevent the app from staying open.
     }
-
-    final sharing = ReceiveSharingIntent.instance;
-
-    void applyShared(List<SharedMediaFile> files) {
-      if (files.isEmpty) return;
-      final item = files.first;
-      final text = (item.type == SharedMediaType.text || item.type == SharedMediaType.url)
-          ? item.path
-          : item.path;
-      applyText(text);
-    }
-
-    sharing.getInitialMedia().then(applyShared);
-    sharing.getMediaStream().listen(applyShared);
   }
 
   Future<void> _analyze() async {
@@ -71,12 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isAnalyzing = true;
       _isError = false;
-      _statusMessage = 'Analyzing link with yt-dlp…';
+      _statusMessage = 'Preparing yt-dlp (first run can take a moment)…';
       _result = null;
     });
 
     try {
       await widget.engine.ensureReady();
+      if (!mounted) return;
+      setState(() => _statusMessage = 'Analyzing link with yt-dlp…');
       final data = await widget.engine.analyze(
         url,
         cookiesPath: widget.settings.cookiesPath,

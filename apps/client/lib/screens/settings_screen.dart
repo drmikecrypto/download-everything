@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           FilledButton(onPressed: _save, child: const Text('Save settings')),
           const SizedBox(height: 32),
           Text(
-            'Download Everything v1.1.0\nAGPL-3.0 · drmikecrypto',
+            'Download Everything v1.1.1\nAGPL-3.0 · drmikecrypto',
             style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
           ),
         ],

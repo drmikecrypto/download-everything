@@ -30,11 +30,21 @@ ThemeData buildAppTheme() {
     ),
   );
 
-  return base.copyWith(
-    textTheme: GoogleFonts.dmSansTextTheme(base.textTheme).apply(
+  TextTheme textTheme;
+  try {
+    textTheme = GoogleFonts.dmSansTextTheme(base.textTheme).apply(
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
-    ),
+    );
+  } catch (_) {
+    textTheme = base.textTheme.apply(
+      bodyColor: AppColors.text,
+      displayColor: AppColors.text,
+    );
+  }
+
+  return base.copyWith(
+    textTheme: textTheme,
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.bg,
       foregroundColor: AppColors.text,
@@ -69,7 +79,7 @@ ThemeData buildAppTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: AppColors.surface2,
-      contentTextStyle: GoogleFonts.dmSans(color: AppColors.text),
+      contentTextStyle: const TextStyle(color: AppColors.text),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
@@ -78,8 +88,16 @@ ThemeData buildAppTheme() {
 }
 
 TextStyle monoStyle(BuildContext context, {double size = 13, Color? color}) {
-  return GoogleFonts.jetBrainsMono(
-    fontSize: size,
-    color: color ?? AppColors.muted,
-  );
+  try {
+    return GoogleFonts.jetBrainsMono(
+      fontSize: size,
+      color: color ?? AppColors.muted,
+    );
+  } catch (_) {
+    return TextStyle(
+      fontFamily: 'monospace',
+      fontSize: size,
+      color: color ?? AppColors.muted,
+    );
+  }
 }

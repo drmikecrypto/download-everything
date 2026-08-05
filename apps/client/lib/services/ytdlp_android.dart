@@ -21,8 +21,17 @@ class YtdlpAndroid {
 
   Future<void> ensureReady() async {
     if (_ready) return;
-    await _channel.invokeMethod<void>('initialize');
-    _ready = true;
+    try {
+      await _channel.invokeMethod<void>('initialize');
+      _ready = true;
+    } on PlatformException catch (e) {
+      throw YtdlpException(
+        e.message ??
+            'Failed to start yt-dlp on Android (${e.code}). Reinstall the app or free storage and try again.',
+      );
+    } on MissingPluginException {
+      throw YtdlpException('yt-dlp native plugin is missing from this Android build.');
+    }
   }
 
   Future<AnalyzeResponse> analyze(String url, {String? cookiesPath}) async {
