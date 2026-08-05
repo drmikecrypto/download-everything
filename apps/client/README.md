@@ -1,6 +1,6 @@
 # Download Everything — Native Client
 
-Cross-platform desktop and mobile app for [Download Everything](https://github.com/drmikecrypto/download-everything).
+Cross-platform desktop and mobile app. Downloads run **locally** with bundled yt-dlp — no cloud API.
 
 ## Platforms
 
@@ -13,10 +13,10 @@ Cross-platform desktop and mobile app for [Download Everything](https://github.c
 
 ## Features
 
-- Paste or share a video link — analyze formats instantly
+- Paste or share a video link — analyze formats with yt-dlp
 - Pick quality and save to your Downloads folder
-- Uses the public Cloudflare Worker API by default (always on)
-- Optional custom API URL for local [Docker yt-dlp backend](../api) (1,800+ sites)
+- Instagram stories / login-walled media via optional `cookies.txt` in Settings
+- Desktop ships yt-dlp + ffmpeg; Android embeds youtubedl-android
 
 ## Develop locally
 
@@ -25,12 +25,14 @@ cd apps/client
 flutter pub get
 dart run tool/generate_icon.dart
 dart run flutter_launcher_icons
-flutter run -d windows   # or macos, linux, android
+dart run tool/fetch_binaries.dart   # desktop only — yt-dlp + ffmpeg
+flutter run -d windows              # or macos, linux, android
 ```
 
 ## Build release binaries
 
 ```bash
+dart run tool/fetch_binaries.dart
 flutter build windows --release
 flutter build macos --release
 flutter build linux --release

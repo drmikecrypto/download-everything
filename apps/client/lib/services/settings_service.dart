@@ -1,27 +1,32 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const defaultApiUrl =
-    'https://download-everything-api.drmikecrypto.workers.dev';
-
 class SettingsService {
   SettingsService(this._prefs);
 
   final SharedPreferences _prefs;
 
-  static const _apiUrlKey = 'api_url';
   static const _askSaveLocationKey = 'ask_save_location';
-
-  String get apiUrl => _prefs.getString(_apiUrlKey) ?? defaultApiUrl;
+  static const _cookiesPathKey = 'cookies_path';
 
   bool get askSaveLocation => _prefs.getBool(_askSaveLocationKey) ?? false;
 
-  Future<void> setApiUrl(String value) async {
-    final trimmed = value.trim().replaceAll(RegExp(r'/+$'), '');
-    await _prefs.setString(_apiUrlKey, trimmed.isEmpty ? defaultApiUrl : trimmed);
+  String? get cookiesPath {
+    final value = _prefs.getString(_cookiesPathKey);
+    if (value == null || value.trim().isEmpty) return null;
+    return value.trim();
   }
 
   Future<void> setAskSaveLocation(bool value) async {
     await _prefs.setBool(_askSaveLocationKey, value);
+  }
+
+  Future<void> setCookiesPath(String? value) async {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      await _prefs.remove(_cookiesPathKey);
+    } else {
+      await _prefs.setString(_cookiesPathKey, trimmed);
+    }
   }
 
   static Future<SettingsService> load() async {

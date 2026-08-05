@@ -28,9 +28,16 @@ jobs:
           flutter pub get
           dart run tool/generate_icon.dart
           dart run flutter_launcher_icons
+          dart run tool/fetch_binaries.dart --platform=windows
       - name: Build Windows
         working-directory: apps/client
         run: flutter build windows --release
+      - name: Bundle yt-dlp binaries
+        shell: pwsh
+        run: |
+          $dest = "apps/client/build/windows/x64/runner/Release"
+          Copy-Item "apps/client/binaries/windows/yt-dlp.exe" $dest -Force
+          Copy-Item "apps/client/binaries/windows/ffmpeg.exe" $dest -Force
       - name: Package Windows
         shell: pwsh
         run: |
@@ -53,16 +60,23 @@ jobs:
       - name: Install Linux build deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xz-utils
       - name: Prepare app
         working-directory: apps/client
         run: |
           flutter pub get
           dart run tool/generate_icon.dart
           dart run flutter_launcher_icons
+          dart run tool/fetch_binaries.dart --platform=linux
       - name: Build Linux
         working-directory: apps/client
         run: flutter build linux --release
+      - name: Bundle yt-dlp binaries
+        run: |
+          DEST=apps/client/build/linux/x64/release/bundle
+          cp apps/client/binaries/linux/yt-dlp "$DEST/"
+          cp apps/client/binaries/linux/ffmpeg "$DEST/"
+          chmod +x "$DEST/yt-dlp" "$DEST/ffmpeg"
       - name: Package Linux
         run: |
           mkdir -p dist
@@ -81,15 +95,25 @@ jobs:
           channel: stable
           cache: true
           cache-key: flutter-client
+      - name: Install ffmpeg
+        run: brew install ffmpeg
       - name: Prepare app
         working-directory: apps/client
         run: |
           flutter pub get
           dart run tool/generate_icon.dart
           dart run flutter_launcher_icons
+          dart run tool/fetch_binaries.dart --platform=macos
       - name: Build macOS
         working-directory: apps/client
         run: flutter build macos --release
+      - name: Bundle yt-dlp binaries
+        run: |
+          APP_PATH=$(find apps/client/build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)
+          MACOS_DIR="$APP_PATH/Contents/MacOS"
+          cp apps/client/binaries/macos/yt-dlp "$MACOS_DIR/"
+          cp apps/client/binaries/macos/ffmpeg "$MACOS_DIR/"
+          chmod +x "$MACOS_DIR/yt-dlp" "$MACOS_DIR/ffmpeg"
       - name: Package macOS
         run: |
           mkdir -p dist

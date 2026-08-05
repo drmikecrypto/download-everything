@@ -6,18 +6,18 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/media.dart';
-import '../services/api_service.dart';
-import '../services/download_service.dart';
 import '../services/settings_service.dart';
+import '../services/ytdlp_engine.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/url_input.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.settings});
+  const HomeScreen({super.key, required this.settings, required this.engine});
 
   final SettingsService settings;
+  final YtdlpEngine engine;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -25,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _urlController = TextEditingController();
-  final _downloadService = DownloadService();
 
   AnalyzeResponse? _result;
   String? _statusMessage;
@@ -38,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _listenForSharedLinks();
+    widget.engine.ensureReady().catchError((_) {});
   }
 
   void _listenForSharedLinks() {
@@ -64,8 +64,6 @@ class _HomeScreenState extends State<HomeScreen> {
     sharing.getMediaStream().listen(applyShared);
   }
 
-  ApiService get _api => ApiService(widget.settings.apiUrl);
-
   Future<void> _analyze() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
@@ -73,12 +71,16 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isAnalyzing = true;
       _isError = false;
-      _statusMessage = 'Analyzing link…';
+      _statusMessage = 'Analyzing link with yt-dlp…';
       _result = null;
     });
 
     try {
-      final data = await _api.analyze(url);
+      await widget.engine.ensureReady();
+      final data = await widget.engine.analyze(
+        url,
+        cookiesPath: widget.settings.cookiesPath,
+      );
       if (!mounted) return;
 
       if (data.formats.isEmpty) {
@@ -95,10 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _statusMessage = null;
         _result = data;
       });
-    } on ApiException catch (e) {
+    } on YtdlpException catch (e) {
       _showAnalyzeError(e.message);
     } catch (e) {
-      _showAnalyzeError('Could not reach the server. Check your connection or API settings.');
+      _showAnalyzeError('$e');
     }
   }
 
@@ -116,7 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_result == null) return;
 
     String? saveDir;
-    if (widget.settings.askSaveLocation) {
+    if (widget.settings.askSaveLocation &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       saveDir = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Choose download folder',
       );
@@ -129,12 +132,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final endpoint = _api.downloadEndpoint(_result!.url, format.formatId);
-      final saved = await _downloadService.download(
-        url: endpoint,
+      final saved = await widget.engine.download(
+        url: _result!.url,
+        formatId: format.formatId,
         title: _result!.title ?? 'download',
         ext: format.ext,
         saveDirectory: saveDir,
+        cookiesPath: widget.settings.cookiesPath,
         onProgress: (p) {
           if (mounted) setState(() => _downloadProgress = p < 0 ? null : p);
         },
@@ -210,7 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 await Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => SettingsScreen(settings: widget.settings),
+                    builder: (_) => SettingsScreen(
+                      settings: widget.settings,
+                      engine: widget.engine,
+                    ),
                   ),
                 );
                 setState(() {});
@@ -242,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Instagram · TikTok · YouTube · X · 1,800+ sites. Free. Ad-free. No signup.',
+                  'Instagram · TikTok · YouTube · X · 1,800+ sites. Runs entirely on your device.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.muted, fontSize: wide ? 16 : 14, height: 1.4),
                 ),
@@ -301,7 +308,7 @@ class _FeatureSection extends StatelessWidget {
     final items = [
       ('Zero ads', 'No popups, upsells, or malware redirects.'),
       ('Pick your quality', 'See every resolution and format before saving.'),
-      ('Privacy first', 'No accounts. Links go to the open API only.'),
+      ('Privacy first', 'No accounts. Extraction runs locally via yt-dlp.'),
       ('Runs on your device', 'Native app for Windows, macOS, Linux, and Android.'),
     ];
 
