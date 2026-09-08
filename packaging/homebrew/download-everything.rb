@@ -1,5 +1,5 @@
 cask "download-everything" do
-  version "1.2.0"
+  version "1.2.2"
   sha256 "REPLACE_WITH_SHA256_OF_MACOS_ZIP"
 
   url "https://github.com/drmikecrypto/download-everything/releases/download/app-v#{version}/download-everything-macos-universal.zip"

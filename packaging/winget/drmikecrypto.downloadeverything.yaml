@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
 # Template for microsoft/winget-pkgs. Replace Version, URLs, and Sha256 after each release.
 PackageIdentifier: drmikecrypto.DownloadEverything
-PackageVersion: 1.2.0
+PackageVersion: 1.2.2
 PackageLocale: en-US
 Publisher: drmikecrypto
 PublisherUrl: https://github.com/drmikecrypto
@@ -22,7 +22,7 @@ Tags:
   - tiktok
   - instagram
   - video
-ReleaseNotesUrl: https://github.com/drmikecrypto/download-everything/releases/tag/app-v1.2.0
+ReleaseNotesUrl: https://github.com/drmikecrypto/download-everything/releases/tag/app-v1.2.2
 Installers:
   - Architecture: x64
     InstallerType: zip
@@ -30,7 +30,7 @@ Installers:
     NestedInstallerFiles:
       - RelativeFilePath: download_everything.exe
         PortableCommandAlias: download-everything
-    InstallerUrl: https://github.com/drmikecrypto/download-everything/releases/download/app-v1.2.0/download-everything-windows-x64.zip
+    InstallerUrl: https://github.com/drmikecrypto/download-everything/releases/download/app-v1.2.2/download-everything-windows-x64.zip
     InstallerSha256: REPLACE_WITH_SHA256_OF_WINDOWS_ZIP
     UpgradeBehavior: uninstallPrevious
 ManifestType: singleton
