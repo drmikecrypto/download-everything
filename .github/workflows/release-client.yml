@@ -1,7 +1,8 @@
 name: Release Desktop & Mobile Apps
 
-# Flutter pinned: 3.44+ macOS AOT crashes on _window_macos.dart (_Rect illegal cid).
-# 3.41.9 is the last known-good stable for this project's macOS release builds.
+# Flutter pins:
+# - macOS: 3.41.9 — 3.44+ AOT crashes on _window_macos.dart (_Rect illegal cid).
+# - Others: 3.44.8 — matches AGP/Kotlin in android/settings.gradle.kts + receive_sharing_intent.
 # Revisit when https://github.com/flutter/flutter/issues/191575 (or successor) is fixed.
 
 on:
@@ -22,7 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: '3.41.9'
+  FLUTTER_VERSION: '3.44.8'
+  FLUTTER_VERSION_MACOS: '3.41.9'
 
 jobs:
   validate-tag:
@@ -130,10 +132,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_MACOS }}
           channel: stable
           cache: true
-          cache-key: flutter-client-${{ env.FLUTTER_VERSION }}
+          cache-key: flutter-client-${{ env.FLUTTER_VERSION_MACOS }}
       - name: Install ffmpeg
         run: brew install ffmpeg
       - name: Prepare app
