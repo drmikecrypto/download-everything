@@ -139,6 +139,7 @@ jobs:
       - name: Prepare app
         working-directory: apps/client
         run: |
+          flutter config --enable-swift-package-manager
           flutter pub get
           dart run tool/check_version.dart
           dart run tool/generate_icon.dart
