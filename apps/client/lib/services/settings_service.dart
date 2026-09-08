@@ -11,8 +11,17 @@ class SettingsService {
 
   static const _askSaveLocationKey = 'ask_save_location';
   static const _cookiesPathKey = 'cookies_path';
+  static const _writeSubsKey = 'write_subs';
+  static const _sponsorBlockKey = 'sponsor_block';
+  static const _allowPlaylistKey = 'allow_playlist';
 
   bool get askSaveLocation => _prefs.getBool(_askSaveLocationKey) ?? false;
+
+  bool get writeSubs => _prefs.getBool(_writeSubsKey) ?? false;
+
+  bool get sponsorBlock => _prefs.getBool(_sponsorBlockKey) ?? false;
+
+  bool get allowPlaylist => _prefs.getBool(_allowPlaylistKey) ?? true;
 
   String? get cookiesPath {
     final value = _prefs.getString(_cookiesPathKey);
@@ -22,6 +31,18 @@ class SettingsService {
 
   Future<void> setAskSaveLocation(bool value) async {
     await _prefs.setBool(_askSaveLocationKey, value);
+  }
+
+  Future<void> setWriteSubs(bool value) async {
+    await _prefs.setBool(_writeSubsKey, value);
+  }
+
+  Future<void> setSponsorBlock(bool value) async {
+    await _prefs.setBool(_sponsorBlockKey, value);
+  }
+
+  Future<void> setAllowPlaylist(bool value) async {
+    await _prefs.setBool(_allowPlaylistKey, value);
   }
 
   Future<void> setCookiesPath(String? value) async {

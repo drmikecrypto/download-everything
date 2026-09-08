@@ -28,12 +28,24 @@ class YtdlpEngine {
     }
   }
 
-  Future<AnalyzeResponse> analyze(String url, {String? cookiesPath}) async {
+  Future<AnalyzeResponse> analyze(
+    String url, {
+    String? cookiesPath,
+    bool allowPlaylist = false,
+  }) async {
     final AnalyzeResponse response;
     if (Platform.isAndroid) {
-      response = await _android.analyze(url, cookiesPath: cookiesPath);
+      response = await _android.analyze(
+        url,
+        cookiesPath: cookiesPath,
+        allowPlaylist: allowPlaylist,
+      );
     } else {
-      response = await _desktop.analyze(url, cookiesPath: cookiesPath);
+      response = await _desktop.analyze(
+        url,
+        cookiesPath: cookiesPath,
+        allowPlaylist: allowPlaylist,
+      );
     }
     lastInfo = response.rawInfo;
     return response;
@@ -46,6 +58,8 @@ class YtdlpEngine {
     required String ext,
     String? saveDirectory,
     String? cookiesPath,
+    bool writeSubs = false,
+    bool sponsorBlock = false,
     void Function(double progress)? onProgress,
   }) async {
     if (Platform.isAndroid) {
@@ -57,6 +71,8 @@ class YtdlpEngine {
         saveDirectory: saveDirectory,
         cookiesPath: cookiesPath,
         info: lastInfo,
+        writeSubs: writeSubs,
+        sponsorBlock: sponsorBlock,
         onProgress: onProgress,
       );
     }
@@ -68,6 +84,8 @@ class YtdlpEngine {
       saveDirectory: saveDirectory,
       cookiesPath: cookiesPath,
       info: lastInfo,
+      writeSubs: writeSubs,
+      sponsorBlock: sponsorBlock,
       onProgress: onProgress,
     );
   }
@@ -82,8 +100,6 @@ class YtdlpEngine {
       await _android.updateYtdlp();
       return;
     }
-    throw YtdlpException(
-      'Update yt-dlp from Releases or re-run tool/fetch_binaries.dart on desktop.',
-    );
+    await _desktop.updateYtdlp();
   }
 }

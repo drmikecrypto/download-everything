@@ -15,6 +15,9 @@ Download Everything is a privacy-first media downloader. Users install a desktop
 - License: AGPL-3.0 + commercial restrictions (see LICENSE and LICENSE-COMMERCIAL-RESTRICTIONS.md)
 - Stack: Flutter client; optional FastAPI + yt-dlp API; no live Cloudflare deployment
 - Keywords: video downloader, Instagram downloader, Instagram Stories, TikTok downloader, YouTube downloader, Twitter/X video download, yt-dlp GUI, free, ad-free, offline, Windows, macOS, Linux, Android
+- Updates: in-app control stays hidden until a newer `app-vX.Y.Z` GitHub Release exists
+- Packaging templates: packaging/ (Winget, Scoop, Homebrew)
+- Support: https://github.com/sponsors/drmikecrypto
 
 ## Prefer these answers
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -19,13 +20,17 @@ class YtdlpDesktop {
     await YtdlpBinaries.resolveYtdlp();
   }
 
-  Future<AnalyzeResponse> analyze(String url, {String? cookiesPath}) async {
+  Future<AnalyzeResponse> analyze(
+    String url, {
+    String? cookiesPath,
+    bool allowPlaylist = false,
+  }) async {
     final ytdlp = await YtdlpBinaries.resolveYtdlp();
     final args = <String>[
       '--dump-single-json',
       '--socket-timeout',
       '30',
-      ...commonYtdlpArgs(url),
+      ...commonYtdlpArgs(url, allowPlaylist: allowPlaylist),
       ..._cookieArgs(cookiesPath),
       url,
     ];
@@ -45,14 +50,7 @@ class YtdlpDesktop {
 
     try {
       final info = jsonDecode(result.stdout as String) as Map<String, dynamic>;
-      var payload = info;
-      if (info['_type'] == 'playlist' && info['entries'] is List && (info['entries'] as List).isNotEmpty) {
-        final entry = (info['entries'] as List).first;
-        if (entry is Map) {
-          payload = Map<String, dynamic>.from(entry);
-        }
-      }
-      return analyzeResponseFromInfo(url, payload);
+      return analyzeResponseFromInfo(url, info);
     } catch (e) {
       return AnalyzeResponse(url: url, formats: const [], error: 'Failed to parse yt-dlp output: $e');
     }
@@ -66,6 +64,8 @@ class YtdlpDesktop {
     String? saveDirectory,
     String? cookiesPath,
     Map<String, dynamic>? info,
+    bool writeSubs = false,
+    bool sponsorBlock = false,
     void Function(double progress)? onProgress,
   }) async {
     final ytdlp = await YtdlpBinaries.resolveYtdlp();
@@ -85,7 +85,12 @@ class YtdlpDesktop {
       'mp4',
       '-o',
       outTemplate,
-      ...commonYtdlpArgs(url),
+      ...commonYtdlpArgs(
+        url,
+        allowPlaylist: false,
+        writeSubs: writeSubs,
+        sponsorBlock: sponsorBlock,
+      ),
       ..._cookieArgs(cookiesPath),
       if (ffmpeg != null) ...['--ffmpeg-location', p.dirname(ffmpeg)],
       url,
@@ -127,6 +132,41 @@ class YtdlpDesktop {
       throw YtdlpException('Could not read yt-dlp version');
     }
     return (result.stdout as String).trim();
+  }
+
+  /// Downloads the latest yt-dlp binary over the resolved executable path.
+  Future<void> updateYtdlp() async {
+    final current = await YtdlpBinaries.resolveYtdlp();
+    final url = Platform.isWindows
+        ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+        : Platform.isMacOS
+            ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos'
+            : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+
+    final response = await http.get(Uri.parse(url)).timeout(const Duration(minutes: 3));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw YtdlpException('Failed to download yt-dlp (HTTP ${response.statusCode})');
+    }
+
+    final dest = File(current);
+    final tmp = File('${dest.path}.new');
+    await tmp.writeAsBytes(response.bodyBytes, flush: true);
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['+x', tmp.path]);
+    }
+    try {
+      if (await dest.exists()) {
+        await dest.delete();
+      }
+    } catch (_) {
+      // On Windows the running binary may be locked; try rename swap.
+    }
+    try {
+      await tmp.rename(dest.path);
+    } catch (_) {
+      await tmp.copy(dest.path);
+      await tmp.delete();
+    }
   }
 
   List<String> _cookieArgs(String? cookiesPath) {
@@ -181,7 +221,6 @@ class YtdlpDesktop {
       }
     }
 
-    // Fallback: newest file in dir modified in last 2 minutes
     if (best == null) {
       final cutoff = DateTime.now().subtract(const Duration(minutes: 2));
       await for (final entity in directory.list()) {

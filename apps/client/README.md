@@ -15,8 +15,11 @@ Cross-platform desktop and mobile app. Downloads run **locally** with bundled yt
 
 - Paste or share a video link — analyze formats with yt-dlp
 - Pick quality and save to your Downloads folder
+- Download queue, playlist batch, and local history
+- Optional subtitles embed + SponsorBlock (Settings)
 - Instagram stories / login-walled media via optional `cookies.txt` in Settings
-- Desktop ships yt-dlp + ffmpeg; Android embeds youtubedl-android
+- Hidden app update control appears when a newer GitHub `app-v*` release exists
+- Desktop ships yt-dlp + ffmpeg (in-app yt-dlp update); Android embeds youtubedl-android
 
 ## Develop locally
 

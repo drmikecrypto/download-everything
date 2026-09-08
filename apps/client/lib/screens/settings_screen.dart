@@ -25,6 +25,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _askSaveLocation = false;
+  bool _writeSubs = false;
+  bool _sponsorBlock = false;
+  bool _allowPlaylist = true;
   bool _busy = false;
   bool _igConnected = false;
   String? _status;
@@ -36,6 +39,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _igSession = InstagramSession(widget.settings);
     _askSaveLocation = widget.settings.askSaveLocation;
+    _writeSubs = widget.settings.writeSubs;
+    _sponsorBlock = widget.settings.sponsorBlock;
+    _allowPlaylist = widget.settings.allowPlaylist;
     _refreshIgStatus();
     _loadVersion();
     _checkForAppUpdate();
@@ -59,7 +65,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkForAppUpdate() async {
-    final update = await AppUpdateService().checkForUpdate();
+    // Always show in Settings even if home banner was dismissed.
+    final update = await AppUpdateService().checkForUpdate(includeDismissed: true);
     if (!mounted) return;
     setState(() => _update = update);
   }
@@ -73,6 +80,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _save() async {
     await widget.settings.setAskSaveLocation(_askSaveLocation);
+    await widget.settings.setWriteSubs(_writeSubs);
+    await widget.settings.setSponsorBlock(_sponsorBlock);
+    await widget.settings.setAllowPlaylist(_allowPlaylist);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Settings saved')),
@@ -164,6 +174,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _askSaveLocation,
             onChanged: (v) => setState(() => _askSaveLocation = v),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Allow playlists'),
+            subtitle: const Text('Analyze playlist/channel URLs and queue every item.'),
+            value: _allowPlaylist,
+            onChanged: (v) => setState(() => _allowPlaylist = v),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Embed subtitles'),
+            subtitle: const Text('Write and embed English subs when available.'),
+            value: _writeSubs,
+            onChanged: (v) => setState(() => _writeSubs = v),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('SponsorBlock'),
+            subtitle: const Text('Remove default sponsored segments (YouTube).'),
+            value: _sponsorBlock,
+            onChanged: (v) => setState(() => _sponsorBlock = v),
+          ),
           const SizedBox(height: 24),
           Text('Instagram', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -236,29 +267,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_status != null)
             Text(_status!, style: TextStyle(color: AppColors.muted, fontSize: 13)),
           const SizedBox(height: 12),
-          if (Platform.isAndroid)
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _updateYtdlp,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.system_update_alt_rounded, size: 18),
-              label: const Text('Update yt-dlp'),
-            )
-          else
-            Text(
-              'Desktop builds ship yt-dlp alongside the app. Re-run tool/fetch_binaries.dart or install a new Release to update.',
-              style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4),
-            ),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _updateYtdlp,
+            icon: _busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.system_update_alt_rounded, size: 18),
+            label: const Text('Update yt-dlp'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            Platform.isAndroid
+                ? 'Pulls the latest yt-dlp build into the app.'
+                : 'Downloads the latest yt-dlp binary next to the app.',
+            style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4),
+          ),
           const SizedBox(height: 24),
           FilledButton(onPressed: _save, child: const Text('Save settings')),
           const SizedBox(height: 32),
           Text(
             'Download Everything v$kAppVersion\nAGPL-3.0 · drmikecrypto',
             style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => launchUrl(
+              Uri.parse('https://github.com/sponsors/drmikecrypto'),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: const Text('Sponsor on GitHub'),
           ),
           if (_update != null) ...[
             const SizedBox(height: 12),

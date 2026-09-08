@@ -22,7 +22,15 @@
 | Linux | `download-everything-linux-x64.tar.gz` |
 | Android | `download-everything-android.apk` |
 
+### Package managers (templates)
+
+Manifests live under [`packaging/`](packaging/) (Winget, Scoop, Homebrew Cask). Update hashes after each release, then publish to the respective repos/taps.
+
+Windows/macOS SmartScreen or Gatekeeper may warn until desktop code-signing/notarization is added — prefer the GitHub Releases page as the trusted source.
+
 There is **no online web app**. Anyone who wants to use it installs the app from Releases.
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors)](https://github.com/sponsors/drmikecrypto)
 
 ## Why this app
 
@@ -33,6 +41,8 @@ There is **no online web app**. Anyone who wants to use it installs the app from
 | Ad-free | No upsells, redirects, or malware landers |
 | Offline capable | Once installed, you only need network access to the media host |
 | Stories support | Instagram Stories work when you import a browser `cookies.txt` |
+| Queue & playlists | Queue multiple downloads; analyze playlists and download all items |
+| Updates | Hidden until a newer `app-v*` GitHub Release exists — then an Update control appears |
 
 ## Supported sites (examples)
 

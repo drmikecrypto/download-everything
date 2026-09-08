@@ -180,15 +180,67 @@ List<MediaFormat> _dedupeFormatVariants(List<MediaFormat> formats) {
   return best.values.toList();
 }
 
-AnalyzeResponse analyzeResponseFromInfo(String url, Map<String, dynamic> info) {
-  var formats = normalizeFormats(info['formats'] as List<dynamic>?);
+List<PlaylistEntry> extractPlaylistEntries(Map<String, dynamic> info) {
+  if (info['_type'] != 'playlist') return const [];
+  final entries = info['entries'];
+  if (entries is! List) return const [];
 
-  if (formats.isEmpty && info['url'] != null) {
+  final out = <PlaylistEntry>[];
+  for (final raw in entries) {
+    if (raw is! Map) continue;
+    final map = Map<String, dynamic>.from(raw);
+    final entryUrl = map['webpage_url']?.toString() ??
+        map['url']?.toString() ??
+        map['original_url']?.toString();
+    if (entryUrl == null || entryUrl.isEmpty || !entryUrl.startsWith('http')) {
+      continue;
+    }
+    out.add(
+      PlaylistEntry(
+        url: entryUrl,
+        title: map['title']?.toString(),
+        id: map['id']?.toString(),
+        thumbnail: map['thumbnail']?.toString(),
+      ),
+    );
+  }
+  return out;
+}
+
+AnalyzeResponse analyzeResponseFromInfo(String url, Map<String, dynamic> info) {
+  final playlistEntries = extractPlaylistEntries(info);
+  var payload = info;
+  if (playlistEntries.isNotEmpty && info['entries'] is List) {
+    for (final raw in info['entries'] as List) {
+      if (raw is Map) {
+        payload = Map<String, dynamic>.from(raw);
+        break;
+      }
+    }
+  }
+
+  var formats = normalizeFormats(payload['formats'] as List<dynamic>?);
+
+  if (formats.isEmpty && payload['url'] != null) {
     formats = [
       MediaFormat(
         formatId: 'best',
         label: 'Best available',
-        ext: info['ext']?.toString() ?? 'mp4',
+        ext: payload['ext']?.toString() ?? 'mp4',
+        isVideo: true,
+        isAudio: false,
+        isImage: false,
+      ),
+    ];
+  }
+
+  // Playlist-only responses may lack formats until an entry is analyzed.
+  if (formats.isEmpty && playlistEntries.isNotEmpty) {
+    formats = [
+      const MediaFormat(
+        formatId: 'best',
+        label: 'Best available (playlist)',
+        ext: 'mp4',
         isVideo: true,
         isAudio: false,
         isImage: false,
@@ -198,13 +250,18 @@ AnalyzeResponse analyzeResponseFromInfo(String url, Map<String, dynamic> info) {
 
   return AnalyzeResponse(
     url: url,
-    title: info['title']?.toString() ?? info['description']?.toString(),
-    thumbnail: info['thumbnail']?.toString(),
-    uploader: info['uploader']?.toString() ?? info['channel']?.toString(),
-    duration: (info['duration'] as num?)?.toDouble(),
+    title: info['title']?.toString() ??
+        payload['title']?.toString() ??
+        payload['description']?.toString(),
+    thumbnail: info['thumbnail']?.toString() ?? payload['thumbnail']?.toString(),
+    uploader: info['uploader']?.toString() ??
+        payload['uploader']?.toString() ??
+        payload['channel']?.toString(),
+    duration: (payload['duration'] as num?)?.toDouble(),
     platform: detectPlatform(url) ?? info['extractor_key']?.toString(),
     formats: formats,
-    rawInfo: info,
+    rawInfo: payload,
+    playlistEntries: playlistEntries,
   );
 }
 

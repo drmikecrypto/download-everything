@@ -30,9 +30,14 @@ String appendInstagramCookiesTip(String url, String raw) {
 }
 
 /// Common analyze/download flags applied on every request.
-List<String> commonYtdlpArgs(String url) {
+List<String> commonYtdlpArgs(
+  String url, {
+  bool allowPlaylist = false,
+  bool writeSubs = false,
+  bool sponsorBlock = false,
+}) {
   final args = <String>[
-    '--no-playlist',
+    if (!allowPlaylist) '--no-playlist',
     '--no-warnings',
   ];
   // Custom UA breaks Instagram (empty media / 403); let yt-dlp choose headers there.
@@ -40,6 +45,18 @@ List<String> commonYtdlpArgs(String url) {
     args.addAll(['--user-agent', kMobileUserAgent]);
   } else {
     args.addAll(['--extractor-args', 'instagram:app_id=$kInstagramAppId']);
+  }
+  if (writeSubs) {
+    args.addAll([
+      '--write-subs',
+      '--write-auto-subs',
+      '--embed-subs',
+      '--sub-langs',
+      'en.*,en',
+    ]);
+  }
+  if (sponsorBlock) {
+    args.addAll(['--sponsorblock-remove', 'default']);
   }
   return args;
 }

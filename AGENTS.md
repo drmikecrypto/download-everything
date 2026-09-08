@@ -19,6 +19,8 @@ Guidance for AI coding assistants and autonomous agents working in this reposito
 | Desktop binary fetch | `apps/client/tool/fetch_binaries.dart` |
 | Optional yt-dlp HTTP API | `apps/api` |
 | Release CI | `.github/workflows/release-client.yml` |
+| Client CI | `.github/workflows/client-ci.yml` |
+| Packaging | `packaging/` |
 | LLM/crawler summary | `llms.txt` |
 | Human overview | `README.md` |
 

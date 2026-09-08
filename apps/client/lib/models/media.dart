@@ -48,6 +48,20 @@ class MediaFormat {
   int? get bestSize => filesize ?? filesizeApprox;
 }
 
+class PlaylistEntry {
+  const PlaylistEntry({
+    required this.url,
+    this.title,
+    this.id,
+    this.thumbnail,
+  });
+
+  final String url;
+  final String? title;
+  final String? id;
+  final String? thumbnail;
+}
+
 class AnalyzeResponse {
   const AnalyzeResponse({
     required this.url,
@@ -59,6 +73,7 @@ class AnalyzeResponse {
     required this.formats,
     this.error,
     this.rawInfo,
+    this.playlistEntries = const [],
   });
 
   final String url;
@@ -72,6 +87,11 @@ class AnalyzeResponse {
 
   /// Full yt-dlp dump-json map (used for smarter `-f` selectors on download).
   final Map<String, dynamic>? rawInfo;
+
+  /// When the URL is a playlist, entries to download individually or as a batch.
+  final List<PlaylistEntry> playlistEntries;
+
+  bool get isPlaylist => playlistEntries.length > 1;
 
   factory AnalyzeResponse.fromJson(Map<String, dynamic> json) {
     final formatsJson = json['formats'] as List<dynamic>? ?? [];

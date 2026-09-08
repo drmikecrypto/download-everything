@@ -41,3 +41,7 @@ apps/client/build/
 apps/client/.pub-cache/
 apps/client/**/Generated.xcconfig
 apps/client/**/flutter_export_environment.sh
+apps/client/android/app/*.keystore
+apps/client/android/app/*.jks
+apps/client/android/app/release.keystore
+apps/client/binaries/

@@ -101,6 +101,7 @@ class MainActivity : FlutterActivity() {
                     "analyze" -> {
                         val url = call.argument<String>("url")
                         val cookiesPath = call.argument<String>("cookiesPath")
+                        val allowPlaylist = call.argument<Boolean>("allowPlaylist") ?: false
                         if (url.isNullOrBlank()) {
                             result.error("BAD_ARGS", "url is required", null)
                             return@setMethodCallHandler
@@ -109,7 +110,12 @@ class MainActivity : FlutterActivity() {
                             try {
                                 ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
-                                applyCommonOptions(request, url, cookiesPath)
+                                applyCommonOptions(
+                                    request,
+                                    url,
+                                    cookiesPath,
+                                    allowPlaylist = allowPlaylist,
+                                )
                                 request.addOption("--dump-single-json")
                                 request.addOption("--socket-timeout", "30")
                                 val response = YoutubeDL.getInstance().execute(request)
@@ -128,6 +134,8 @@ class MainActivity : FlutterActivity() {
                         val format = call.argument<String>("format") ?: "best"
                         val outTemplate = call.argument<String>("outTemplate")
                         val cookiesPath = call.argument<String>("cookiesPath")
+                        val writeSubs = call.argument<Boolean>("writeSubs") ?: false
+                        val sponsorBlock = call.argument<Boolean>("sponsorBlock") ?: false
                         if (url.isNullOrBlank() || outTemplate.isNullOrBlank()) {
                             result.error("BAD_ARGS", "url and outTemplate are required", null)
                             return@setMethodCallHandler
@@ -136,7 +144,14 @@ class MainActivity : FlutterActivity() {
                             try {
                                 ensureNativeReady()
                                 val request = YoutubeDLRequest(url)
-                                applyCommonOptions(request, url, cookiesPath)
+                                applyCommonOptions(
+                                    request,
+                                    url,
+                                    cookiesPath,
+                                    allowPlaylist = false,
+                                    writeSubs = writeSubs,
+                                    sponsorBlock = sponsorBlock,
+                                )
                                 request.addOption("-f", format)
                                 request.addOption("--newline")
                                 request.addOption("--merge-output-format", "mp4")
@@ -261,8 +276,13 @@ class MainActivity : FlutterActivity() {
         request: YoutubeDLRequest,
         url: String,
         cookiesPath: String?,
+        allowPlaylist: Boolean = false,
+        writeSubs: Boolean = false,
+        sponsorBlock: Boolean = false,
     ) {
-        request.addOption("--no-playlist")
+        if (!allowPlaylist) {
+            request.addOption("--no-playlist")
+        }
         request.addOption("--no-warnings")
         val isInstagram = url.contains("instagram.com", ignoreCase = true) ||
             url.contains("instagr.am", ignoreCase = true)
@@ -274,6 +294,15 @@ class MainActivity : FlutterActivity() {
         }
         if (!cookiesPath.isNullOrBlank() && File(cookiesPath).exists()) {
             request.addOption("--cookies", cookiesPath)
+        }
+        if (writeSubs) {
+            request.addOption("--write-subs")
+            request.addOption("--write-auto-subs")
+            request.addOption("--embed-subs")
+            request.addOption("--sub-langs", "en.*,en")
+        }
+        if (sponsorBlock) {
+            request.addOption("--sponsorblock-remove", "default")
         }
     }
 

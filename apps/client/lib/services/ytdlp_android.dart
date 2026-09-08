@@ -37,12 +37,17 @@ class YtdlpAndroid {
     }
   }
 
-  Future<AnalyzeResponse> analyze(String url, {String? cookiesPath}) async {
+  Future<AnalyzeResponse> analyze(
+    String url, {
+    String? cookiesPath,
+    bool allowPlaylist = false,
+  }) async {
     await ensureReady();
     try {
       final raw = await _channel.invokeMethod<String>('analyze', {
         'url': url,
         'cookiesPath': cookiesPath,
+        'allowPlaylist': allowPlaylist,
       });
       if (raw == null || raw.isEmpty) {
         return AnalyzeResponse(url: url, formats: const [], error: 'Empty response from yt-dlp');
@@ -51,13 +56,7 @@ class YtdlpAndroid {
       if (decoded is! Map) {
         return AnalyzeResponse(url: url, formats: const [], error: 'Unexpected yt-dlp JSON');
       }
-      var info = Map<String, dynamic>.from(decoded);
-      if (info['_type'] == 'playlist' && info['entries'] is List && (info['entries'] as List).isNotEmpty) {
-        final entry = (info['entries'] as List).first;
-        if (entry is Map) {
-          info = Map<String, dynamic>.from(entry);
-        }
-      }
+      final info = Map<String, dynamic>.from(decoded);
       return analyzeResponseFromInfo(url, info);
     } on PlatformException catch (e) {
       return AnalyzeResponse(
@@ -76,6 +75,8 @@ class YtdlpAndroid {
     String? saveDirectory,
     String? cookiesPath,
     Map<String, dynamic>? info,
+    bool writeSubs = false,
+    bool sponsorBlock = false,
     void Function(double progress)? onProgress,
   }) async {
     await ensureReady();
@@ -101,6 +102,8 @@ class YtdlpAndroid {
         'format': selector,
         'outTemplate': outTemplate,
         'cookiesPath': cookiesPath,
+        'writeSubs': writeSubs,
+        'sponsorBlock': sponsorBlock,
       });
       if (path == null || path.isEmpty) {
         throw YtdlpException('Download finished but no file path was returned.');

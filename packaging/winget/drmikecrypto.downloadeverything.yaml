@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
+# Template for microsoft/winget-pkgs. Replace Version, URLs, and Sha256 after each release.
+PackageIdentifier: drmikecrypto.DownloadEverything
+PackageVersion: 1.2.0
+PackageLocale: en-US
+Publisher: drmikecrypto
+PublisherUrl: https://github.com/drmikecrypto
+PublisherSupportUrl: https://github.com/drmikecrypto/download-everything/issues
+Author: drmikecrypto
+PackageName: Download Everything
+PackageUrl: https://github.com/drmikecrypto/download-everything
+License: AGPL-3.0-or-later WITH additional commercial restrictions
+LicenseUrl: https://github.com/drmikecrypto/download-everything/blob/main/LICENSE
+Copyright: Copyright (c) drmikecrypto
+ShortDescription: Free ad-free video downloader for Windows — Instagram, TikTok, YouTube, X, 1800+ sites via yt-dlp.
+Description: Paste a link, pick quality, save locally. Powered by yt-dlp. No ads, no tracking, no cloud download API.
+Moniker: download-everything
+Tags:
+  - downloader
+  - yt-dlp
+  - youtube
+  - tiktok
+  - instagram
+  - video
+ReleaseNotesUrl: https://github.com/drmikecrypto/download-everything/releases/tag/app-v1.2.0
+Installers:
+  - Architecture: x64
+    InstallerType: zip
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: download_everything.exe
+        PortableCommandAlias: download-everything
+    InstallerUrl: https://github.com/drmikecrypto/download-everything/releases/download/app-v1.2.0/download-everything-windows-x64.zip
+    InstallerSha256: REPLACE_WITH_SHA256_OF_WINDOWS_ZIP
+    UpgradeBehavior: uninstallPrevious
+ManifestType: singleton
+ManifestVersion: 1.6.0

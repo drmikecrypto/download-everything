@@ -89,6 +89,7 @@ class MediaResultCard extends StatelessWidget {
     required this.downloadingFormatId,
     required this.downloadProgress,
     required this.onDownload,
+    this.onQueue,
   });
 
   final AnalyzeResponse result;
@@ -96,6 +97,7 @@ class MediaResultCard extends StatelessWidget {
   final String? downloadingFormatId;
   final double? downloadProgress;
   final void Function(MediaFormat format) onDownload;
+  final void Function(MediaFormat format)? onQueue;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +105,7 @@ class MediaResultCard extends StatelessWidget {
       if (result.platform != null) _MetaChip(result.platform!),
       if (result.uploader != null) _MetaChip(result.uploader!),
       if (formatDuration(result.duration).isNotEmpty) _MetaChip(formatDuration(result.duration)),
+      if (result.isPlaylist) _MetaChip('${result.playlistEntries.length} items'),
     ];
 
     return Card(
@@ -143,6 +146,30 @@ class MediaResultCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (result.isPlaylist) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Playlist — pick a quality to download all ${result.playlistEntries.length} items',
+                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              ...result.playlistEntries.take(8).map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '• ${e.title ?? e.url}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                      ),
+                    ),
+                  ),
+              if (result.playlistEntries.length > 8)
+                Text(
+                  '…and ${result.playlistEntries.length - 8} more',
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
+            ],
             const SizedBox(height: 16),
             Text(
               'Available formats',
@@ -189,15 +216,28 @@ class MediaResultCard extends StatelessWidget {
                           color: AppColors.success,
                         ),
                       )
-                    else
+                    else ...[
+                      if (onQueue != null)
+                        IconButton(
+                          tooltip: 'Add to queue',
+                          onPressed: isDownloading ? null : () => onQueue!(fmt),
+                          icon: const Icon(Icons.playlist_add, size: 20),
+                        ),
                       FilledButton.tonal(
                         onPressed: isDownloading ? null : () => onDownload(fmt),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.success,
                           foregroundColor: AppColors.bg,
                         ),
-                        child: Text(isDownloading ? 'Saving…' : 'Download'),
+                        child: Text(
+                          isDownloading
+                              ? 'Saving…'
+                              : result.isPlaylist
+                                  ? 'Download all'
+                                  : 'Download',
+                        ),
                       ),
+                    ],
                   ],
                 ),
               );

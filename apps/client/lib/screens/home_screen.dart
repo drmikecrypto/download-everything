@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/media.dart';
 import '../services/app_update_service.dart';
+import '../services/download_history_service.dart';
+import '../services/download_queue_service.dart';
 import '../services/instagram_session.dart';
 import '../services/settings_service.dart';
 import '../services/ytdlp_engine.dart';
@@ -14,22 +16,33 @@ import '../services/ytdlp_options.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/url_input.dart';
+import 'history_screen.dart';
 import 'instagram_login_screen.dart';
+import 'queue_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.settings, required this.engine});
+  const HomeScreen({
+    super.key,
+    required this.settings,
+    required this.engine,
+    required this.history,
+    required this.queue,
+  });
 
   final SettingsService settings;
   final YtdlpEngine engine;
+  final DownloadHistoryService history;
+  final DownloadQueueService queue;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _urlController = TextEditingController();
   late final InstagramSession _igSession;
+  final _updateService = AppUpdateService();
 
   AnalyzeResponse? _result;
   String? _statusMessage;
@@ -42,15 +55,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _igSession = InstagramSession(widget.settings);
-    // Do not eagerly init yt-dlp here — native Python/FFmpeg extract is heavy and
-    // used to crash/OOM the process on open. Init happens on first analyze/download.
     _listenForSharedLinks();
     _checkForAppUpdate();
   }
 
-  Future<void> _checkForAppUpdate() async {
-    final update = await AppUpdateService().checkForUpdate();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkForAppUpdate();
+    }
+  }
+
+  Future<void> _checkForAppUpdate({bool includeDismissed = false}) async {
+    final update = await _updateService.checkForUpdate(
+      includeDismissed: includeDismissed,
+    );
     if (!mounted) return;
     setState(() => _appUpdate = update);
   }
@@ -60,6 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (update == null) return;
     final uri = Uri.parse(update.openUrl);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _dismissUpdate() async {
+    final update = _appUpdate;
+    if (update == null) return;
+    await _updateService.dismiss(update.latestVersion);
+    if (!mounted) return;
+    setState(() => _appUpdate = null);
   }
 
   void _listenForSharedLinks() {
@@ -129,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
       var data = await widget.engine.analyze(
         url,
         cookiesPath: widget.settings.cookiesPath,
+        allowPlaylist: widget.settings.allowPlaylist,
       );
       if (!mounted) return;
 
@@ -146,11 +176,12 @@ class _HomeScreenState extends State<HomeScreen> {
         data = await widget.engine.analyze(
           url,
           cookiesPath: widget.settings.cookiesPath,
+          allowPlaylist: widget.settings.allowPlaylist,
         );
         if (!mounted) return;
       }
 
-      if (data.formats.isEmpty) {
+      if (data.formats.isEmpty && data.playlistEntries.isEmpty) {
         setState(() {
           _isAnalyzing = false;
           _isError = true;
@@ -175,9 +206,10 @@ class _HomeScreenState extends State<HomeScreen> {
             final data = await widget.engine.analyze(
               url,
               cookiesPath: widget.settings.cookiesPath,
+              allowPlaylist: widget.settings.allowPlaylist,
             );
             if (!mounted) return;
-            if (data.formats.isNotEmpty) {
+            if (data.formats.isNotEmpty || data.playlistEntries.isNotEmpty) {
               setState(() {
                 _isAnalyzing = false;
                 _statusMessage = null;
@@ -209,16 +241,51 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<String?> _pickSaveDir() async {
+    if (widget.settings.askSaveLocation &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      return FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Choose download folder',
+      );
+    }
+    return null;
+  }
+
   Future<void> _downloadFormat(MediaFormat format) async {
     if (_result == null) return;
 
-    String? saveDir;
+    final saveDir = await _pickSaveDir();
     if (widget.settings.askSaveLocation &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      saveDir = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Choose download folder',
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS) &&
+        saveDir == null) {
+      return;
+    }
+
+    // Playlist: enqueue all entries with this quality selector.
+    if (_result!.isPlaylist) {
+      widget.queue.enqueuePlaylist(
+        entries: _result!.playlistEntries,
+        formatId: format.formatId,
+        ext: format.ext,
+        saveDirectory: saveDir,
       );
-      if (saveDir == null) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Queued ${_result!.playlistEntries.length} playlist items',
+          ),
+          action: SnackBarAction(
+            label: 'Queue',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => QueueScreen(queue: widget.queue)),
+              );
+            },
+          ),
+        ),
+      );
+      return;
     }
 
     setState(() {
@@ -234,9 +301,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ext: format.ext,
         saveDirectory: saveDir,
         cookiesPath: widget.settings.cookiesPath,
+        writeSubs: widget.settings.writeSubs,
+        sponsorBlock: widget.settings.sponsorBlock,
         onProgress: (p) {
           if (mounted) setState(() => _downloadProgress = p < 0 ? null : p);
         },
+      );
+
+      await widget.history.add(
+        url: _result!.url,
+        title: _result!.title ?? 'download',
+        path: saved.path,
       );
 
       if (!mounted) return;
@@ -263,9 +338,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ext: format.ext,
               saveDirectory: saveDir,
               cookiesPath: widget.settings.cookiesPath,
+              writeSubs: widget.settings.writeSubs,
+              sponsorBlock: widget.settings.sponsorBlock,
               onProgress: (p) {
                 if (mounted) setState(() => _downloadProgress = p < 0 ? null : p);
               },
+            );
+            await widget.history.add(
+              url: _result!.url,
+              title: _result!.title ?? 'download',
+              path: saved.path,
             );
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
@@ -303,6 +385,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _queueSingle(MediaFormat format) async {
+    if (_result == null) return;
+    final saveDir = await _pickSaveDir();
+    if (widget.settings.askSaveLocation &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS) &&
+        saveDir == null) {
+      return;
+    }
+    widget.queue.enqueue(
+      url: _result!.url,
+      title: _result!.title ?? 'download',
+      formatId: format.formatId,
+      ext: format.ext,
+      saveDirectory: saveDir,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Added to queue')),
+    );
+  }
+
   Future<void> _openContainingFolder(String filePath) async {
     final file = File(filePath);
     final dir = file.parent.path;
@@ -313,13 +416,16 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (Platform.isLinux) {
       await Process.run('xdg-open', [dir]);
     } else if (Platform.isAndroid) {
-      final uri = Uri.parse('content://com.android.externalstorage.documents/document/primary:Download');
+      final uri = Uri.parse(
+        'content://com.android.externalstorage.documents/document/primary:Download',
+      );
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _urlController.dispose();
     super.dispose();
   }
@@ -356,6 +462,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+            AnimatedBuilder(
+              animation: widget.queue,
+              builder: (context, _) {
+                final n = widget.queue.pendingCount;
+                return IconButton(
+                  tooltip: 'Download queue',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => QueueScreen(queue: widget.queue),
+                      ),
+                    );
+                  },
+                  icon: Badge(
+                    isLabelVisible: n > 0,
+                    label: Text('$n'),
+                    child: const Icon(Icons.queue_outlined),
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              tooltip: 'History',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HistoryScreen(history: widget.history),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.history),
+            ),
             IconButton(
               tooltip: 'Settings',
               onPressed: () async {
@@ -369,12 +507,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
                 if (!mounted) return;
                 setState(() {});
-                _checkForAppUpdate();
+                _checkForAppUpdate(includeDismissed: true);
               },
               icon: const Icon(Icons.settings_outlined),
             ),
             TextButton.icon(
-              onPressed: () => launchUrl(Uri.parse('https://github.com/drmikecrypto/download-everything')),
+              onPressed: () => launchUrl(
+                Uri.parse('https://github.com/drmikecrypto/download-everything'),
+              ),
               icon: const Icon(Icons.code, size: 18),
               label: const Text('GitHub'),
             ),
@@ -386,6 +526,37 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
+                if (_appUpdate != null) ...[
+                  Material(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.new_releases_outlined, color: AppColors.success, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'v${_appUpdate!.latestVersion} is available',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _openAppUpdate,
+                            child: const Text('Update'),
+                          ),
+                          IconButton(
+                            tooltip: 'Dismiss',
+                            onPressed: _dismissUpdate,
+                            icon: const Icon(Icons.close, size: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   'Download anything from the internet',
                   textAlign: TextAlign.center,
@@ -434,6 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     downloadingFormatId: _downloadingFormatId,
                     downloadProgress: _downloadProgress,
                     onDownload: _downloadFormat,
+                    onQueue: _result!.isPlaylist ? null : _queueSingle,
                   ),
                 ],
                 const SizedBox(height: 32),

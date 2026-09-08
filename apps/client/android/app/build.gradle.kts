@@ -27,12 +27,31 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            val storePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (!storePath.isNullOrBlank()) {
+                storeFile = file(storePath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Explicit: keep R8 minify off; rules stay wired if Flutter/AGP ever flips the default.
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            // Prefer CI/local release keystore when ANDROID_KEYSTORE_PATH is set; else debug
+            // so unsigned/dev APKs still build without secrets.
+            val releaseSigning = signingConfigs.findByName("release")
+            signingConfig = if (releaseSigning?.storeFile != null) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
