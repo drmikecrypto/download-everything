@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'services/browser_bridge_service.dart';
 import 'services/download_history_service.dart';
 import 'services/download_queue_service.dart';
 import 'services/settings_service.dart';
@@ -15,7 +16,6 @@ import 'services/ytdlp_engine.dart';
 Future<void> main() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    // Prefer packaged font assets; never block/crash startup on network font fetch.
     GoogleFonts.config.allowRuntimeFetching = false;
 
     FlutterError.onError = (details) {
@@ -27,9 +27,7 @@ Future<void> main() async {
 
     try {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    } catch (_) {
-      // Older OEM builds can reject edge-to-edge; UI still works without it.
-    }
+    } catch (_) {}
 
     final prefs = await SharedPreferences.getInstance();
     final settings = SettingsService(prefs);
@@ -40,12 +38,14 @@ Future<void> main() async {
       settings: settings,
       history: history,
     );
+    final bridge = BrowserBridgeService();
     runApp(
-      DownloadEverythingApp(
+      DefApp(
         settings: settings,
         engine: engine,
         history: history,
         queue: queue,
+        bridge: bridge,
       ),
     );
   }, (error, stack) {

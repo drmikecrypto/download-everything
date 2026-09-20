@@ -1,4 +1,4 @@
-# Download Everything — Native Client
+# DEF — Native Client
 
 Cross-platform desktop and mobile app. Downloads run **locally** with bundled yt-dlp — no cloud API.
 
@@ -6,19 +6,21 @@ Cross-platform desktop and mobile app. Downloads run **locally** with bundled yt
 
 | Platform | Download |
 |----------|----------|
-| Windows  | `download-everything-windows-x64.zip` from [Releases](https://github.com/drmikecrypto/download-everything/releases) |
-| macOS    | `download-everything-macos-universal.zip` |
-| Linux    | `download-everything-linux-x64.tar.gz` |
-| Android  | `download-everything-android.apk` |
+| Windows  | `def-windows-x64.zip` from [Releases](https://github.com/drmikecrypto/download-everything/releases) |
+| macOS    | `def-macos-universal.zip` |
+| Linux    | `def-linux-x64.tar.gz` |
+| Android  | `def-android.apk` |
 
 ## Features
 
 - Paste or share a video link — analyze formats with yt-dlp
 - Pick quality and save to your Downloads folder
 - Download queue, playlist batch, and local history
+- Smart Mode — remember last format per site and auto-download after analyze
 - Optional subtitles embed + SponsorBlock (Settings)
 - Instagram stories / login-walled media via optional `cookies.txt` in Settings
 - Hidden app update control appears when a newer GitHub `app-v*` release exists
+- Desktop browser companion bridge (`extensions/`)
 - Desktop ships yt-dlp + ffmpeg (in-app yt-dlp update); Android embeds youtubedl-android
 
 ## Develop locally

@@ -1,7 +1,7 @@
 name: download_everything
-description: Download Everything — free universal video downloader for desktop and mobile.
+description: DEF — Download Everything Forever. Free universal video downloader for desktop and mobile.
 publish_to: 'none'
-version: 1.2.2+10
+version: 1.3.0+11
 
 environment:
   sdk: ^3.7.0

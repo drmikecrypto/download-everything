@@ -78,7 +78,7 @@ class AppUpdateService {
       uri,
       headers: const {
         'Accept': 'application/vnd.github+json',
-        'User-Agent': 'download-everything-app',
+        'User-Agent': 'DEF-app',
       },
     ).timeout(const Duration(seconds: 12));
     if (response.statusCode != 200) return null;
@@ -98,7 +98,7 @@ class AppUpdateService {
       uri,
       headers: const {
         'Accept': 'application/vnd.github+json',
-        'User-Agent': 'download-everything-app',
+        'User-Agent': 'DEF-app',
       },
     ).timeout(const Duration(seconds: 12));
     if (response.statusCode != 200) return null;
@@ -142,14 +142,19 @@ class AppUpdateService {
     final needles = _assetNameNeedles();
     if (needles.isEmpty) return null;
 
+    // Prefer DEF-branded assets; fall back to legacy download-everything-* names.
+    String? legacy;
     for (final raw in assetsRaw) {
       if (raw is! Map) continue;
       final name = (raw['name']?.toString() ?? '').toLowerCase();
       final url = raw['browser_download_url']?.toString();
       if (url == null || url.isEmpty) continue;
-      if (needles.any(name.contains)) return url;
+      if (needles.any(name.contains)) {
+        if (name.startsWith('def-') || name.contains('def-')) return url;
+        legacy ??= url;
+      }
     }
-    return null;
+    return legacy;
   }
 
   static List<String> _assetNameNeedles() {

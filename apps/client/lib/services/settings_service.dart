@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -14,6 +15,9 @@ class SettingsService {
   static const _writeSubsKey = 'write_subs';
   static const _sponsorBlockKey = 'sponsor_block';
   static const _allowPlaylistKey = 'allow_playlist';
+  static const _smartModeKey = 'smart_mode';
+  static const _formatPrefsKey = 'format_prefs_by_host';
+  static const _browserBridgeKey = 'browser_bridge_enabled';
 
   bool get askSaveLocation => _prefs.getBool(_askSaveLocationKey) ?? false;
 
@@ -22,6 +26,12 @@ class SettingsService {
   bool get sponsorBlock => _prefs.getBool(_sponsorBlockKey) ?? false;
 
   bool get allowPlaylist => _prefs.getBool(_allowPlaylistKey) ?? true;
+
+  /// When true, after analyze DEF auto-downloads the remembered (or best) format.
+  bool get smartMode => _prefs.getBool(_smartModeKey) ?? false;
+
+  /// Desktop: listen for browser extension "Send to DEF" on localhost.
+  bool get browserBridgeEnabled => _prefs.getBool(_browserBridgeKey) ?? true;
 
   String? get cookiesPath {
     final value = _prefs.getString(_cookiesPathKey);
@@ -45,6 +55,14 @@ class SettingsService {
     await _prefs.setBool(_allowPlaylistKey, value);
   }
 
+  Future<void> setSmartMode(bool value) async {
+    await _prefs.setBool(_smartModeKey, value);
+  }
+
+  Future<void> setBrowserBridgeEnabled(bool value) async {
+    await _prefs.setBool(_browserBridgeKey, value);
+  }
+
   Future<void> setCookiesPath(String? value) async {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) {
@@ -52,6 +70,44 @@ class SettingsService {
     } else {
       await _prefs.setString(_cookiesPathKey, trimmed);
     }
+  }
+
+  Map<String, String> _formatPrefs() {
+    final raw = _prefs.getString(_formatPrefsKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return {};
+      return decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  String? preferredFormatIdForUrl(String url) {
+    final host = Uri.tryParse(url)?.host.toLowerCase();
+    if (host == null || host.isEmpty) return null;
+    final prefs = _formatPrefs();
+    if (prefs.containsKey(host)) return prefs[host];
+    // Fall back to registrable-ish suffix (e.g. www.youtube.com → youtube.com).
+    final parts = host.split('.');
+    if (parts.length >= 2) {
+      final suffix = parts.sublist(parts.length - 2).join('.');
+      return prefs[suffix];
+    }
+    return null;
+  }
+
+  Future<void> rememberFormatForUrl(String url, String formatId) async {
+    final host = Uri.tryParse(url)?.host.toLowerCase();
+    if (host == null || host.isEmpty || formatId.isEmpty) return;
+    final prefs = _formatPrefs();
+    prefs[host] = formatId;
+    final parts = host.split('.');
+    if (parts.length >= 2) {
+      prefs[parts.sublist(parts.length - 2).join('.')] = formatId;
+    }
+    await _prefs.setString(_formatPrefsKey, jsonEncode(prefs));
   }
 
   /// App-private Netscape cookies path (readable by Android yt-dlp).

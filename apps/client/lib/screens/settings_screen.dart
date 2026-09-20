@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../app_brand.dart';
 import '../app_version.dart';
 import '../services/app_update_service.dart';
 import '../services/instagram_session.dart';
@@ -28,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _writeSubs = false;
   bool _sponsorBlock = false;
   bool _allowPlaylist = true;
+  bool _smartMode = false;
+  bool _browserBridge = true;
   bool _busy = false;
   bool _igConnected = false;
   String? _status;
@@ -42,6 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _writeSubs = widget.settings.writeSubs;
     _sponsorBlock = widget.settings.sponsorBlock;
     _allowPlaylist = widget.settings.allowPlaylist;
+    _smartMode = widget.settings.smartMode;
+    _browserBridge = widget.settings.browserBridgeEnabled;
     _refreshIgStatus();
     _loadVersion();
     _checkForAppUpdate();
@@ -83,6 +88,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.settings.setWriteSubs(_writeSubs);
     await widget.settings.setSponsorBlock(_sponsorBlock);
     await widget.settings.setAllowPlaylist(_allowPlaylist);
+    await widget.settings.setSmartMode(_smartMode);
+    await widget.settings.setBrowserBridgeEnabled(_browserBridge);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Settings saved')),
@@ -174,6 +181,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _askSaveLocation,
             onChanged: (v) => setState(() => _askSaveLocation = v),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Smart Mode'),
+            subtitle: const Text(
+              'After analyze, auto-download the last format used for that site (or best video).',
+            ),
+            value: _smartMode,
+            onChanged: (v) => setState(() => _smartMode = v),
+          ),
+          if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Browser companion bridge'),
+              subtitle: Text(
+                'Accept “Send to $kAppName” from the browser extension on 127.0.0.1:$kBrowserBridgePort.',
+              ),
+              value: _browserBridge,
+              onChanged: (v) => setState(() => _browserBridge = v),
+            ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Allow playlists'),
@@ -289,13 +315,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           FilledButton(onPressed: _save, child: const Text('Save settings')),
           const SizedBox(height: 32),
           Text(
-            'Download Everything v$kAppVersion\nAGPL-3.0 · drmikecrypto',
+            '$kAppName v$kAppVersion\n$kAppTagline\nAGPL-3.0 · drmikecrypto',
             style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => launchUrl(
-              Uri.parse('https://github.com/sponsors/drmikecrypto'),
+              Uri.parse(kAppSponsorsUrl),
               mode: LaunchMode.externalApplication,
             ),
             child: const Text('Sponsor on GitHub'),
@@ -307,8 +333,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: const Icon(Icons.new_releases_outlined, size: 18),
               label: Text(
                 _update!.downloadUrl != null
-                    ? 'Download update — v${_update!.latestVersion}'
-                    : 'Update available — v${_update!.latestVersion}',
+                    ? 'Download $kAppName update — v${_update!.latestVersion}'
+                    : 'Update $kAppName — v${_update!.latestVersion}',
               ),
             ),
           ],

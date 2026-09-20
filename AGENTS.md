@@ -1,10 +1,10 @@
-# AGENTS.md — Download Everything
+# AGENTS.md — DEF (Download Everything Forever)
 
 Guidance for AI coding assistants and autonomous agents working in this repository.
 
 ## Project identity
 
-- **Name:** Download Everything
+- **Name:** DEF (short for Download Everything Forever)
 - **Owner:** drmikecrypto (only author/maintainer credit — do not add co-authors or Cursor attribution in commits)
 - **What it is:** Free ad-free universal media downloader (Instagram, TikTok, YouTube, X, 1800+ sites via yt-dlp)
 - **How users get it:** GitHub Releases only — no public live web/API hosting
@@ -14,7 +14,9 @@ Guidance for AI coding assistants and autonomous agents working in this reposito
 | Area | Path |
 |------|------|
 | Primary product (Flutter) | `apps/client` |
+| Brand constants | `apps/client/lib/app_brand.dart` |
 | Local yt-dlp engine (Dart) | `apps/client/lib/services/ytdlp_*.dart` |
+| Browser companion bridge | `apps/client/lib/services/browser_bridge_service.dart` + `extensions/` |
 | Android native bridge | `apps/client/android/.../MainActivity.kt` |
 | Desktop binary fetch | `apps/client/tool/fetch_binaries.dart` |
 | Optional yt-dlp HTTP API | `apps/api` |
@@ -31,6 +33,7 @@ Guidance for AI coding assistants and autonomous agents working in this reposito
 3. Instagram Stories / login walls: optional `cookies.txt` via Settings (`SettingsService.cookiesPath`).
 4. `apps/web` and `apps/worker` are legacy/retired for hosting; do not advertise them as the product.
 5. Release tags must match `app-v*` to trigger desktop/mobile builds.
+6. User-facing name is **DEF**; keep Dart package / Android `applicationId` as `download_everything` for upgrade stability.
 
 ## Common tasks
 

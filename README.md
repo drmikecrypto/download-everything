@@ -1,6 +1,6 @@
-# Download Everything — Free Video Downloader (Instagram, TikTok, YouTube, X)
+# DEF — Download Everything Forever
 
-**Download Everything** is a free, ad-free, open-source **video downloader** for **Windows, macOS, Linux, and Android**. Paste a link, pick quality, save to disk. Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp) with **1,800+ site extractors**. No signup. No ads. No tracking. Runs entirely on your device.
+**DEF** is a free, ad-free, open-source **video downloader** for **Windows, macOS, Linux, and Android**. Paste a link, pick quality, save to disk. Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp) with **1,800+ site extractors**. No signup. No ads. No tracking. Runs entirely on your device.
 
 [![Download apps](https://img.shields.io/badge/Download-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-6c5ce7?style=for-the-badge)](https://github.com/drmikecrypto/download-everything/releases/latest)
 [![Release](https://img.shields.io/github/v/release/drmikecrypto/download-everything?style=for-the-badge)](https://github.com/drmikecrypto/download-everything/releases/latest)
@@ -17,14 +17,18 @@
 
 | Platform | File |
 |----------|------|
-| Windows | `download-everything-windows-x64.zip` |
-| macOS | `download-everything-macos-universal.zip` |
-| Linux | `download-everything-linux-x64.tar.gz` |
-| Android | `download-everything-android.apk` |
+| Windows | `def-windows-x64.zip` |
+| macOS | `def-macos-universal.zip` |
+| Linux | `def-linux-x64.tar.gz` |
+| Android | `def-android.apk` |
 
 ### Package managers (templates)
 
 Manifests live under [`packaging/`](packaging/) (Winget, Scoop, Homebrew Cask). Update hashes after each release, then publish to the respective repos/taps.
+
+### Browser companion
+
+Unpacked extensions under [`extensions/`](extensions/) send the current tab URL to DEF over localhost (`127.0.0.1:19624`).
 
 Windows/macOS SmartScreen or Gatekeeper may warn until desktop code-signing/notarization is added — prefer the GitHub Releases page as the trusted source.
 
@@ -32,7 +36,7 @@ There is **no online web app**. Anyone who wants to use it installs the app from
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors)](https://github.com/sponsors/drmikecrypto)
 
-## Why this app
+## Why DEF
 
 | Feature | Detail |
 |---------|--------|
@@ -42,6 +46,7 @@ There is **no online web app**. Anyone who wants to use it installs the app from
 | Offline capable | Once installed, you only need network access to the media host |
 | Stories support | Instagram Stories work when you import a browser `cookies.txt` |
 | Queue & playlists | Queue multiple downloads; analyze playlists and download all items |
+| Smart Mode | Remember last format per site and one-tap download after analyze |
 | Updates | Hidden until a newer `app-v*` GitHub Release exists — then an Update control appears |
 
 ## Supported sites (examples)
@@ -61,7 +66,7 @@ In **Settings**, import a Netscape `cookies.txt` (e.g. browser extension “Get 
 ## How it works
 
 ```
-Flutter app (Windows · macOS · Linux · Android)
+DEF Flutter app (Windows · macOS · Linux · Android)
         │
         ▼
 Bundled yt-dlp + ffmpeg  →  file saved to Downloads
@@ -73,8 +78,8 @@ Bundled yt-dlp + ffmpeg  →  file saved to Downloads
 
 ## FAQ
 
-### Is Download Everything free?
-Yes. Free, open source, and ad-free for individuals and nonprofits (see license).
+### Is DEF free?
+Yes. Free, open source, and ad-free for individuals and nonprofits (see license). **DEF** is short for *Download Everything Forever*.
 
 ### Does it download Instagram Reels, Stories, and TikTok?
 Yes for public Reels/TikTok/YouTube/X in most cases. Instagram Stories usually need a `cookies.txt` from your logged-in browser session.
@@ -109,6 +114,7 @@ Tag `app-v*` to publish builds via GitHub Actions.
 | Path | Purpose |
 |------|---------|
 | [`apps/client`](apps/client) | Flutter desktop & Android app (primary product) |
+| [`extensions`](extensions) | Browser “Send to DEF” companions |
 | [`apps/api`](apps/api) | Optional local FastAPI + yt-dlp HTTP API |
 | [`apps/web`](apps/web) | Legacy static UI for local docker-compose only |
 | [`apps/worker`](apps/worker) | Retired Cloudflare Worker (not deployed) |

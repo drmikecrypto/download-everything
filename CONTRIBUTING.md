@@ -1,7 +1,8 @@
-# Contributing to Download Everything
+# Contributing to DEF
 
 Thank you for helping improve a free, ad-free media downloader.
 
+**Product name:** DEF (Download Everything Forever)  
 **Maintainer:** [drmikecrypto](https://github.com/drmikecrypto)
 
 ## How to contribute

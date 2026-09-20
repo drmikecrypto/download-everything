@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Send to DEF",
+  "version": "1.0.0",
+  "description": "Send the current tab URL to the DEF desktop app (localhost bridge).",
+  "permissions": ["activeTab"],
+  "action": {
+    "default_title": "Send to DEF",
+    "default_popup": "popup.html"
+  },
+  "host_permissions": ["http://127.0.0.1:19624/*"]
+}

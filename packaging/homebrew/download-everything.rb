@@ -1,10 +1,10 @@
-cask "download-everything" do
-  version "1.2.2"
+cask "def" do
+  version "1.3.0"
   sha256 "REPLACE_WITH_SHA256_OF_MACOS_ZIP"
 
-  url "https://github.com/drmikecrypto/download-everything/releases/download/app-v#{version}/download-everything-macos-universal.zip"
-  name "Download Everything"
-  desc "Free ad-free video downloader powered by yt-dlp"
+  url "https://github.com/drmikecrypto/download-everything/releases/download/app-v#{version}/def-macos-universal.zip"
+  name "DEF"
+  desc "Download Everything Forever — free ad-free video downloader powered by yt-dlp"
   homepage "https://github.com/drmikecrypto/download-everything"
 
   livecheck do
@@ -13,7 +13,7 @@ cask "download-everything" do
     strategy :github_latest
   end
 
-  app "Download Everything.app"
+  app "DEF.app"
 
   zap trash: [
     "~/Library/Application Support/download_everything",

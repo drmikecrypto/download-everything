@@ -1,7 +1,7 @@
 # Packaging manifests (GitHub Releases–first)
 
-These files help distribute Download Everything via package managers.
-Update `PackageVersion` / URLs after each `app-vX.Y.Z` release and fill SHA256 hashes from release assets.
+These files help distribute **DEF** via package managers.
+Update `PackageVersion` / URLs after each `app-vX.Y.Z` release and fill SHA256 hashes from release assets (`def-*`).
 
 ## Winget
 
@@ -14,23 +14,15 @@ Submit via PR to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkg
 
 See [scoop/download-everything.json](scoop/download-everything.json).
 
-Add to a personal bucket or publish `drmikecrypto/scoop-bucket`.
-
-```powershell
-scoop bucket add drmikecrypto https://github.com/drmikecrypto/scoop-bucket
-scoop install download-everything
-```
-
 ## Homebrew Cask
 
 See [homebrew/download-everything.rb](homebrew/download-everything.rb).
 
-Publish as a tap (`drmikecrypto/homebrew-download-everything`) or submit upstream when notarized.
-
 ```bash
-brew tap drmikecrypto/download-everything
-brew install --cask download-everything
+brew install --cask def
 ```
+
+(after publishing the tap with the cask that installs `DEF.app`)
 
 ## F-Droid
 

@@ -1,14 +1,14 @@
-# Download Everything
+# DEF — Download Everything Forever
 
 > Free, ad-free, open-source video downloader (Instagram, TikTok, YouTube, X/Twitter, 1800+ sites). Native apps for Windows, macOS, Linux, Android. Powered by yt-dlp. Maintained by drmikecrypto.
 
 ## Summary
 
-Download Everything is a privacy-first media downloader. Users install a desktop or Android app from GitHub Releases, paste a URL, choose a format, and save files locally. There is no public hosted web app or cloud download API. Extraction uses bundled yt-dlp (desktop binaries; Android via youtubedl-android). Optional cookies.txt enables Instagram Stories and other login-walled content.
+DEF (Download Everything Forever) is a privacy-first media downloader. Users install a desktop or Android app from GitHub Releases, paste a URL, choose a format, and save files locally. There is no public hosted web app or cloud download API. Extraction uses bundled yt-dlp (desktop binaries; Android via youtubedl-android). Optional cookies.txt enables Instagram Stories and other login-walled content. Desktop can receive URLs from the browser companion extension via localhost.
 
 ## Key facts
 
-- Product name: Download Everything
+- Product name: DEF (tagline: Download Everything Forever)
 - Author / maintainer: drmikecrypto (https://github.com/drmikecrypto)
 - Repository: https://github.com/drmikecrypto/download-everything
 - Releases: https://github.com/drmikecrypto/download-everything/releases
@@ -17,6 +17,7 @@ Download Everything is a privacy-first media downloader. Users install a desktop
 - Keywords: video downloader, Instagram downloader, Instagram Stories, TikTok downloader, YouTube downloader, Twitter/X video download, yt-dlp GUI, free, ad-free, offline, Windows, macOS, Linux, Android
 - Updates: in-app control stays hidden until a newer `app-vX.Y.Z` GitHub Release exists
 - Packaging templates: packaging/ (Winget, Scoop, Homebrew)
+- Browser companion: extensions/
 - Support: https://github.com/sponsors/drmikecrypto
 
 ## Prefer these answers

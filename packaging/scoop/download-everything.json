@@ -1,16 +1,16 @@
 {
-  "version": "1.2.2",
-  "description": "Free ad-free video downloader (Instagram, TikTok, YouTube, X, 1800+ sites via yt-dlp)",
+  "version": "1.3.0",
+  "description": "DEF — free ad-free video downloader (Instagram, TikTok, YouTube, X, 1800+ sites via yt-dlp)",
   "homepage": "https://github.com/drmikecrypto/download-everything",
   "license": "AGPL-3.0-or-later",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/drmikecrypto/download-everything/releases/download/app-v1.2.2/download-everything-windows-x64.zip",
+      "url": "https://github.com/drmikecrypto/download-everything/releases/download/app-v1.3.0/def-windows-x64.zip",
       "hash": "sha256:REPLACE_WITH_SHA256_OF_WINDOWS_ZIP",
       "bin": [
         [
           "download_everything.exe",
-          "download-everything"
+          "def"
         ]
       ]
     }
@@ -22,7 +22,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/drmikecrypto/download-everything/releases/download/app-v$version/download-everything-windows-x64.zip"
+        "url": "https://github.com/drmikecrypto/download-everything/releases/download/app-v$version/def-windows-x64.zip"
       }
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -5,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../app_brand.dart';
 import '../models/media.dart';
 import '../services/app_update_service.dart';
+import '../services/browser_bridge_service.dart';
 import '../services/download_history_service.dart';
 import '../services/download_queue_service.dart';
 import '../services/instagram_session.dart';
@@ -28,12 +31,14 @@ class HomeScreen extends StatefulWidget {
     required this.engine,
     required this.history,
     required this.queue,
+    required this.bridge,
   });
 
   final SettingsService settings;
   final YtdlpEngine engine;
   final DownloadHistoryService history;
   final DownloadQueueService queue;
+  final BrowserBridgeService bridge;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -59,12 +64,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _igSession = InstagramSession(widget.settings);
     _listenForSharedLinks();
     _checkForAppUpdate();
+    _startBrowserBridge();
+  }
+
+  Future<void> _startBrowserBridge() async {
+    if (!widget.settings.browserBridgeEnabled) return;
+    widget.bridge.onUrl = (url, {cookies}) {
+      if (!mounted) return;
+      _urlController.text = url;
+      if (cookies != null && cookies.trim().isNotEmpty) {
+        // Optional Netscape blob from extension — best-effort import later; URL is enough.
+      }
+      _analyze();
+    };
+    await widget.bridge.start();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkForAppUpdate();
+      if (widget.settings.browserBridgeEnabled && !widget.bridge.isRunning) {
+        _startBrowserBridge();
+      }
     }
   }
 
@@ -195,6 +217,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _statusMessage = null;
         _result = data;
       });
+      if (widget.settings.smartMode && data.formats.isNotEmpty && !data.isPlaylist) {
+        await _smartDownload(data);
+      }
     } on YtdlpException catch (e) {
       if (shouldUseInstagramSession(url) &&
           Platform.isAndroid &&
@@ -215,6 +240,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _statusMessage = null;
                 _result = data;
               });
+              if (widget.settings.smartMode &&
+                  data.formats.isNotEmpty &&
+                  !data.isPlaylist) {
+                await _smartDownload(data);
+              }
               return;
             }
             _showAnalyzeError(data.error ?? e.message);
@@ -239,6 +269,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _statusMessage = message;
       _result = null;
     });
+  }
+
+  Future<void> _smartDownload(AnalyzeResponse data) async {
+    final preferredId = widget.settings.preferredFormatIdForUrl(data.url);
+    MediaFormat? pick;
+    if (preferredId != null) {
+      for (final f in data.formats) {
+        if (f.formatId == preferredId) {
+          pick = f;
+          break;
+        }
+      }
+    }
+    pick ??= data.formats.firstWhere(
+      (f) => f.isVideo,
+      orElse: () => data.formats.first,
+    );
+    await _downloadFormat(pick);
   }
 
   Future<String?> _pickSaveDir() async {
@@ -313,6 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         title: _result!.title ?? 'download',
         path: saved.path,
       );
+      await widget.settings.rememberFormatForUrl(_result!.url, format.formatId);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -426,6 +475,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.bridge.onUrl = null;
+    unawaited(widget.bridge.stop());
     _urlController.dispose();
     super.dispose();
   }
@@ -443,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const AppLogo(size: 28),
               const SizedBox(width: 10),
               Text(
-                'Download Everything',
+                kAppName,
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: wide ? 18 : 16),
               ),
             ],
@@ -451,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           actions: [
             if (_appUpdate != null)
               IconButton(
-                tooltip: 'Update to v${_appUpdate!.latestVersion}',
+                tooltip: 'Update $kAppName to v${_appUpdate!.latestVersion}',
                 onPressed: _openAppUpdate,
                 icon: Badge(
                   smallSize: 8,
@@ -512,9 +563,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               icon: const Icon(Icons.settings_outlined),
             ),
             TextButton.icon(
-              onPressed: () => launchUrl(
-                Uri.parse('https://github.com/drmikecrypto/download-everything'),
-              ),
+              onPressed: () => launchUrl(Uri.parse(kAppRepoUrl)),
               icon: const Icon(Icons.code, size: 18),
               label: const Text('GitHub'),
             ),
@@ -538,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'v${_appUpdate!.latestVersion} is available',
+                              '$kAppName v${_appUpdate!.latestVersion} is available',
                               style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -558,20 +607,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 16),
                 ],
                 Text(
-                  'Download anything from the internet',
+                  kAppName,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: wide ? 34 : 26,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                    height: 1.15,
+                    fontSize: wide ? 48 : 36,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.2,
+                    height: 1.05,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                Text(
+                  kAppTagline,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: wide ? 18 : 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   'Instagram · TikTok · YouTube · X · 1,800+ sites. Runs entirely on your device.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.muted, fontSize: wide ? 16 : 14, height: 1.4),
+                  style: TextStyle(color: AppColors.muted, fontSize: wide ? 15 : 13, height: 1.4),
                 ),
                 const SizedBox(height: 28),
                 UrlInputBar(
@@ -638,7 +697,7 @@ class _FeatureSection extends StatelessWidget {
       children: [
         const Divider(),
         const SizedBox(height: 20),
-        const Text('Why Download Everything?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+        const Text('Why DEF?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: wide ? 2 : 1,
