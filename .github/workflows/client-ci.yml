@@ -7,6 +7,9 @@ on:
   pull_request:
     paths: ['apps/client/**', '.github/workflows/client-ci.yml']
 
+permissions:
+  contents: read
+
 concurrency:
   group: client-ci-${{ github.ref }}
   cancel-in-progress: true

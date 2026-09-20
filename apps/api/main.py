@@ -6,7 +6,7 @@ import glob
 import os
 import re
 import tempfile
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 import yt_dlp

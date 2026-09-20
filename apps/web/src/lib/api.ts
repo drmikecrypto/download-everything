@@ -30,10 +30,18 @@ export interface AnalyzeResponse {
 /** Cloudflare Worker API — always warm (no Render cold starts). Override at build time. */
 const WORKER_API = 'https://download-everything-api.drmikecrypto.workers.dev';
 
+function isHostedPagesHostname(hostname: string): boolean {
+  return (
+    hostname === 'github.io' ||
+    hostname.endsWith('.github.io') ||
+    hostname === 'pages.dev' ||
+    hostname.endsWith('.pages.dev')
+  );
+}
+
 export const API_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_API_URL) ||
-  (typeof window !== 'undefined' &&
-  (window.location.hostname.endsWith('github.io') || window.location.hostname.endsWith('pages.dev'))
+  (typeof window !== 'undefined' && isHostedPagesHostname(window.location.hostname)
     ? WORKER_API
     : 'http://localhost:8000');
 

@@ -7,6 +7,9 @@ on:
   pull_request:
     paths: ['apps/api/**']
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
         working-directory: apps/api
         run: |
           pip install -r requirements.txt
-          pip install ruff
+          pip install "ruff==0.11.13"
 
       - name: Lint
         working-directory: apps/api

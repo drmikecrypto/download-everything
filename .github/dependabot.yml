@@ -1,4 +1,5 @@
 # Dependabot version updates — keep Actions / API / client tooling current.
+# apps/web and apps/worker are retired (see AGENTS.md); not version-bumped here.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -30,22 +31,3 @@ updates:
     labels:
       - dependencies
       - flutter
-
-  - package-ecosystem: npm
-    directory: /apps/web
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
-    labels:
-      - dependencies
-      - legacy
-    # Legacy tree — low priority; still alert on vulnerable deps
-
-  - package-ecosystem: npm
-    directory: /apps/worker
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
-    labels:
-      - dependencies
-      - legacy

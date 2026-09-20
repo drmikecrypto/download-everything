@@ -237,9 +237,12 @@ def _resolve_format_id(info: dict[str, Any], format_id: str) -> str:
         protocol = str(candidate.get("protocol") or "").lower()
         if "m3u8" not in protocol and "dash" not in protocol:
             continue
-        if target_height and candidate.get("height") not in (target_height, None):
-            if candidate.get("height") != target_height:
-                continue
+        if (
+            target_height
+            and candidate.get("height") not in (target_height, None)
+            and candidate.get("height") != target_height
+        ):
+            continue
         candidates.append(candidate)
 
     if not candidates and target_height:
@@ -324,7 +327,7 @@ def analyze_url(url: str) -> AnalyzeResponse:
         )
     except yt_dlp.utils.DownloadError as exc:
         return AnalyzeResponse(url=url, error=str(exc))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — surface unexpected extractor failures to clients
         return AnalyzeResponse(url=url, error=f"Analysis failed: {exc}")
 
 
